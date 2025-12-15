@@ -1,14 +1,14 @@
 import 'package:flutter/material.dart';
 import 'dart:async';
-
 import 'package:firebase_core/firebase_core.dart';
 import 'firebase_options.dart';
+import 'dashboard/movie_dashboard.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await Firebase.initializeApp(
-    options: DefaultFirebaseOptions.currentPlatform,
-  );
+  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+  await dotenv.load(fileName: ".env");
   runApp(const MyApp());
 }
 
@@ -45,7 +45,9 @@ class _SplashScreenState extends State<SplashScreen> {
     Timer(const Duration(seconds: 3), () {
       if (!mounted) return;
       Navigator.of(context).pushReplacement(
-        MaterialPageRoute(builder: (_) => const MyHomePage(title: 'Flutter Demo Home Page')),
+        MaterialPageRoute(
+          builder: (_) => const  MovieDashboard(),
+        ),
       );
     });
   }
@@ -93,12 +95,7 @@ class _TopBar extends StatelessWidget {
       width: double.infinity,
       padding: const EdgeInsets.symmetric(vertical: 14),
       decoration: const BoxDecoration(
-        border: Border(
-          bottom: BorderSide(
-            color: Color(0xFFE9E6E5),
-            width: 2,
-          ),
-        ),
+        border: Border(bottom: BorderSide(color: Color(0xFFE9E6E5), width: 2)),
       ),
       child: const Center(
         child: Text(
@@ -137,6 +134,7 @@ class _Logo extends StatelessWidget {
     );
   }
 }
+
 // existing code
 class MyHomePage extends StatefulWidget {
   const MyHomePage({super.key, required this.title});
