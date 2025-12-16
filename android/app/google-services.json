@@ -1,0 +1,46 @@
+{
+  "project_info": {
+    "project_number": "191698003540",
+    "project_id": "moviq-1cbf7",
+    "storage_bucket": "moviq-1cbf7.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:191698003540:android:c0620122b1d00f8f0befc1",
+        "android_client_info": {
+          "package_name": "com.example.moviq"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "191698003540-hok792p0nrgoa0sqd2c2jfd6fkd756t6.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBFaZZvxik-UmKzEtzo2A0XYT0Cn_IEaXM"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "191698003540-hok792p0nrgoa0sqd2c2jfd6fkd756t6.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "191698003540-3k0vslrvngsug9mntmungqph4hvbgije.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.example.moviq"
+              }
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
