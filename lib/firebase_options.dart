@@ -64,6 +64,7 @@ class DefaultFirebaseOptions {
     messagingSenderId: '191698003540',
     projectId: 'moviq-1cbf7',
     storageBucket: 'moviq-1cbf7.firebasestorage.app',
+    iosClientId: '191698003540-3k0vslrvngsug9mntmungqph4hvbgije.apps.googleusercontent.com',
     iosBundleId: 'com.example.moviq',
   );
 
@@ -73,6 +74,7 @@ class DefaultFirebaseOptions {
     messagingSenderId: '191698003540',
     projectId: 'moviq-1cbf7',
     storageBucket: 'moviq-1cbf7.firebasestorage.app',
+    iosClientId: '191698003540-3k0vslrvngsug9mntmungqph4hvbgije.apps.googleusercontent.com',
     iosBundleId: 'com.example.moviq',
   );
 
