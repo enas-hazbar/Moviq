@@ -195,10 +195,11 @@ class _RegisterPageState extends State<RegisterPage> {
       ),
       // Wrap the page in SingleChildScrollView only when terms are expanded
       body: SafeArea(
-        child: _termsExpanded
-            ? SingleChildScrollView(child: content)
-            : content,
+      child: SingleChildScrollView(
+        padding: const EdgeInsets.only(bottom: 24),
+        child: content,
       ),
+    ),
     );
   }
 }
