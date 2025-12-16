@@ -3,6 +3,8 @@ import '../services/tmdb_service.dart';
 import '../models/movie.dart';
 import '../config/tmdb_config.dart';
 import 'movie_details_page.dart';
+import'../auth/login_page.dart';
+import'../auth/auth_service.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -28,7 +30,8 @@ class _HomePageState extends State<HomePage> {
   }
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context) { 
+    final authService = AuthService();
     return Scaffold(
       backgroundColor: Colors.black,
       appBar: AppBar(
@@ -38,6 +41,19 @@ class _HomePageState extends State<HomePage> {
           'MOVIQ',
           style: TextStyle(color: Colors.white),
         ),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.logout),
+            onPressed: () async {
+              await authService.signOut();
+              // Navigate back to login page
+              Navigator.pushReplacement(
+                context,
+                MaterialPageRoute(builder: (_) => const LoginPage()),
+              );
+            },
+          )
+        ],
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16),

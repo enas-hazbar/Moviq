@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'auth_service.dart';
 import 'register_page.dart';
 import 'auth_widgets.dart';
-import 'HomePage.dart';
+import 'package:moviq/screen/home_page.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -31,8 +31,9 @@ class _LoginPageState extends State<LoginPage> {
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-            content: Text("Failed to sign in with Google: $e"),
-            backgroundColor: Colors.red),
+          content: Text("Failed to sign in with Google: $e"),
+          backgroundColor: Colors.red,
+        ),
       );
     }
   }
@@ -44,8 +45,9 @@ class _LoginPageState extends State<LoginPage> {
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-            content: Text("Failed to sign in with Apple: $e"),
-            backgroundColor: Colors.red),
+          content: Text("Failed to sign in with Apple: $e"),
+          backgroundColor: Colors.red,
+        ),
       );
     }
   }
@@ -60,8 +62,9 @@ class _LoginPageState extends State<LoginPage> {
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-            content: Text("Email sign in failed: $e"),
-            backgroundColor: Colors.red),
+          content: Text("Email sign in failed: $e"),
+          backgroundColor: Colors.red,
+        ),
       );
     }
   }
@@ -80,10 +83,11 @@ class _LoginPageState extends State<LoginPage> {
               const Text(
                 "MOVIQ",
                 style: TextStyle(
-                    fontSize: 28,
-                    letterSpacing: 6,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.white),
+                  fontSize: 28,
+                  letterSpacing: 6,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.white,
+                ),
               ),
               const SizedBox(height: 10),
 
@@ -91,7 +95,7 @@ class _LoginPageState extends State<LoginPage> {
               ClipRRect(
                 borderRadius: BorderRadius.circular(12),
                 child: Image.asset(
-                  "assets/images/psycho.jpg",
+                  "assets/psycho.jpg",
                   height: 200,
                   fit: BoxFit.cover,
                 ),
@@ -102,7 +106,10 @@ class _LoginPageState extends State<LoginPage> {
               const Text(
                 "Sign in to Moviq",
                 style: TextStyle(
-                    fontSize: 24, fontFamily: "Serif", color: Colors.white70),
+                  fontSize: 24,
+                  fontFamily: "Serif",
+                  color: Colors.white70,
+                ),
               ),
               const SizedBox(height: 15),
 
