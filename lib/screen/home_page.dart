@@ -3,8 +3,7 @@ import '../services/tmdb_service.dart';
 import '../models/movie.dart';
 import '../config/tmdb_config.dart';
 import 'movie_details_page.dart';
-import'../auth/login_page.dart';
-import'../auth/auth_service.dart';
+import '../widgets/moviq_scaffold.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -28,33 +27,11 @@ class _HomePageState extends State<HomePage> {
     _popularMovies = _service.getTrendingMovies();
     _upcomingMovies = _service.getUpcomingMovies();
   }
-
   @override
-  Widget build(BuildContext context) { 
-    final authService = AuthService();
-    return Scaffold(
-      backgroundColor: Colors.black,
-      appBar: AppBar(
-        backgroundColor: Colors.black,
-        centerTitle: true,
-        title: const Text(
-          'MOVIQ',
-          style: TextStyle(color: Colors.white),
-        ),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.logout),
-            onPressed: () async {
-              await authService.signOut();
-              // Navigate back to login page
-              Navigator.pushReplacement(
-                context,
-                MaterialPageRoute(builder: (_) => const LoginPage()),
-              );
-            },
-          )
-        ],
-      ),
+  Widget build(BuildContext context) {
+    return MoviqScaffold(
+      currentTopTab: MoviqTopTab.films,
+      currentBottomTab: MoviqBottomTab.dashboard,
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
         child: Column(
@@ -100,7 +77,7 @@ class _Section extends StatelessWidget {
   final bool showAll;
   final VoidCallback onToggle;
 
-  @override
+ @override
   Widget build(BuildContext context) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -136,11 +113,11 @@ class _Section extends StatelessWidget {
                 child: Center(child: CircularProgressIndicator()),
               );
             }
-
+ 
             final movies = snapshot.data!;
             final visibleMovies =
                 showAll ? movies : movies.take(6).toList();
-
+ 
             return GridView.builder(
               shrinkWrap: true,
               physics: const NeverScrollableScrollPhysics(),
@@ -153,7 +130,7 @@ class _Section extends StatelessWidget {
               ),
               itemBuilder: (context, index) {
                 final movie = visibleMovies[index];
-
+ 
                 return GestureDetector(
                   onTap: () {
                     Navigator.push(
@@ -198,3 +175,4 @@ class _Section extends StatelessWidget {
     );
   }
 }
+ 

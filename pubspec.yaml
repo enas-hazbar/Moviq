@@ -36,6 +36,11 @@ flutter:
   assets:
     - assets/Moviq_logo.png
     - assets/psycho.jpg
+    - assets/dashboard.png
+    - assets/search.png
+    - assets/chatbot.png
+    - assets/favorites.png
+    - assets/profile.png
     - .env
   # The following line ensures that the Material Icons font is
   # included with your application, so that you can use the icons in
