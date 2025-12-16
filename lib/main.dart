@@ -1,5 +1,5 @@
-import 'package:flutter/material.dart';
 import 'dart:async';
+import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'firebase_options.dart';
 import 'dashboard/movie_dashboard.dart';
@@ -36,9 +36,6 @@ class SplashScreen extends StatefulWidget {
 }
 
 class _SplashScreenState extends State<SplashScreen> {
-  static const Color background = Color(0xFF4B2C2C);
-  static const Color foreground = Colors.white;
-
   @override
   void initState() {
     super.initState();
@@ -55,7 +52,7 @@ class _SplashScreenState extends State<SplashScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: background,
+      backgroundColor: const Color(0xFF4B2C2C),
       body: SafeArea(
         child: Column(
           children: [
@@ -69,7 +66,7 @@ class _SplashScreenState extends State<SplashScreen> {
                   const Text(
                     'MOVIQ',
                     style: TextStyle(
-                      color: foreground,
+                      color: Colors.white,
                       fontSize: 40,
                       fontWeight: FontWeight.w800,
                       letterSpacing: 1.2,
