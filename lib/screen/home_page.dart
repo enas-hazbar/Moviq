@@ -12,17 +12,19 @@ class HomePage extends StatefulWidget {
 }
 
 class _HomePageState extends State<HomePage> {
-  final TmdbService _tmdbService = TmdbService();
-  late Future<List<Movie>> _movies;
-  late Future<List<Movie>> _trendingMovies;
+  final TmdbService _service = TmdbService();
+
+  late Future<List<Movie>> _popularMovies;
   late Future<List<Movie>> _upcomingMovies;
+
+  bool _showAllPopular = false;
+  bool _showAllUpcoming = false;
 
   @override
   void initState() {
     super.initState();
-    _movies = _tmdbService.getPopularMovies();
-    _trendingMovies = _tmdbService.getTrendingMovies();
-    _upcomingMovies = _tmdbService.getUpcomingMovies();
+    _popularMovies = _service.getTrendingMovies();
+    _upcomingMovies = _service.getUpcomingMovies();
   }
 
   @override
@@ -30,64 +32,40 @@ class _HomePageState extends State<HomePage> {
     return Scaffold(
       backgroundColor: Colors.black,
       appBar: AppBar(
-        title: const Text('MOVIQ'),
+        backgroundColor: Colors.black,
         centerTitle: true,
+        title: const Text(
+          'MOVIQ',
+          style: TextStyle(color: Colors.white),
+        ),
       ),
-      body: FutureBuilder<List<Movie>>(
-        future: _movies,
-        builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(child: CircularProgressIndicator());
-          }
-          if (snapshot.hasError) {
-            return Center(child: Text(snapshot.error.toString()));
-          }
-
-          final movies = snapshot.data!;
-
-          return ListView.builder(
-            itemCount: movies.length,
-            itemBuilder: (context, index) {
-              final movie = movies[index];
-
-              return ListTile(
-                leading: movie.posterPath.isNotEmpty
-                    ? Image.network(
-                        TmdbConfig.imageBaseUrl + movie.posterPath,
-                        width: 50,
-                      )
-                    : null,
-                title: Text(movie.title),
-                subtitle: Text('⭐ ${movie.rating}'),
-                onTap: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (_) =>
-                          MovieDetailsPage(movieId: movie.id),
-                    ),
-                  );
-                },
-              );
-            },
-          );
-        },
-      ),
-    return SingleChildScrollView(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          _Section(
-            title: 'Popular This Week',
-            future: _trendingMovies,
-          ),
-          const SizedBox(height: 24),
-          _Section(
-            title: 'Upcoming Movies',
-            future: _upcomingMovies,
-          ),
-        ],
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          children: [
+            _Section(
+              title: 'Popular This Week',
+              future: _popularMovies,
+              showAll: _showAllPopular,
+              onToggle: () {
+                setState(() {
+                  _showAllPopular = !_showAllPopular;
+                });
+              },
+            ),
+            const SizedBox(height: 32),
+            _Section(
+              title: 'Upcoming Movies',
+              future: _upcomingMovies,
+              showAll: _showAllUpcoming,
+              onToggle: () {
+                setState(() {
+                  _showAllUpcoming = !_showAllUpcoming;
+                });
+              },
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -97,10 +75,14 @@ class _Section extends StatelessWidget {
   const _Section({
     required this.title,
     required this.future,
+    required this.showAll,
+    required this.onToggle,
   });
 
   final String title;
   final Future<List<Movie>> future;
+  final bool showAll;
+  final VoidCallback onToggle;
 
   @override
   Widget build(BuildContext context) {
@@ -119,13 +101,12 @@ class _Section extends StatelessWidget {
               ),
             ),
             IconButton(
-              // Placeholder: no navigation yet.
-              onPressed: () {},
-              icon: const Icon(
-                Icons.arrow_forward_ios,
+              icon: Icon(
+                showAll ? Icons.expand_less : Icons.arrow_forward_ios,
                 color: Colors.white70,
                 size: 18,
               ),
+              onPressed: onToggle,
             ),
           ],
         ),
@@ -133,29 +114,17 @@ class _Section extends StatelessWidget {
         FutureBuilder<List<Movie>>(
           future: future,
           builder: (context, snapshot) {
-            if (snapshot.connectionState == ConnectionState.waiting) {
+            if (!snapshot.hasData) {
               return const SizedBox(
                 height: 200,
                 child: Center(child: CircularProgressIndicator()),
               );
             }
 
-            if (snapshot.hasError) {
-              return Text(
-                snapshot.error.toString(),
-                style: const TextStyle(color: Colors.redAccent),
-              );
-            }
+            final movies = snapshot.data!;
+            final visibleMovies =
+                showAll ? movies : movies.take(6).toList();
 
-            final movies = snapshot.data ?? [];
-            if (movies.isEmpty) {
-              return const Text(
-                'No movies found.',
-                style: TextStyle(color: Colors.white70),
-              );
-            }
-
-            final visibleMovies = movies.take(9).toList();
             return GridView.builder(
               shrinkWrap: true,
               physics: const NeverScrollableScrollPhysics(),
@@ -168,64 +137,46 @@ class _Section extends StatelessWidget {
               ),
               itemBuilder: (context, index) {
                 final movie = visibleMovies[index];
-                return _PosterCard(movie: movie);
-              },
-            );
-          },
-        ),
-      ],
-    );
-  }
-}
 
-class _PosterCard extends StatelessWidget {
-  const _PosterCard({required this.movie});
-
-  final Movie movie;
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Expanded(
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(8),
-            child: Container(
-              color: Colors.grey.shade900,
-              child: movie.posterPath.isNotEmpty
-                  ? Image.network(
-                      TmdbConfig.imageBaseUrl + movie.posterPath,
-                      fit: BoxFit.cover,
-                    )
-                  : Center(
-                      child: Padding(
-                        padding: const EdgeInsets.all(8.0),
-                        child: Text(
-                          movie.title,
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
-                          textAlign: TextAlign.center,
-                          style: const TextStyle(
-                            color: Colors.white70,
-                            fontSize: 12,
+                return GestureDetector(
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) =>
+                            MovieDetailsPage(movieId: movie.id),
+                      ),
+                    );
+                  },
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Expanded(
+                        child: ClipRRect(
+                          borderRadius: BorderRadius.circular(8),
+                          child: Image.network(
+                            TmdbConfig.imageBaseUrl + movie.posterPath,
+                            fit: BoxFit.cover,
                           ),
                         ),
                       ),
-                    ),
-            ),
-          ),
-        ),
-        const SizedBox(height: 6),
-        Text(
-          movie.title,
-          maxLines: 2,
-          overflow: TextOverflow.ellipsis,
-          style: const TextStyle(
-            color: Colors.white,
-            fontSize: 12,
-            fontWeight: FontWeight.w600,
-          ),
+                      const SizedBox(height: 6),
+                      Text(
+                        movie.title,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ],
+                  ),
+                );
+              },
+            );
+          },
         ),
       ],
     );
