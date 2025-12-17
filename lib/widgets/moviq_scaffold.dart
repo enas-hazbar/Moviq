@@ -11,6 +11,7 @@ class MoviqScaffold extends StatelessWidget {
     this.currentBottomTab = MoviqBottomTab.dashboard,
     this.onTopTabSelected,
     this.onBottomTabSelected,
+    this.showTopNav = true,
   });
 
   final Widget body;
@@ -18,6 +19,7 @@ class MoviqScaffold extends StatelessWidget {
   final MoviqBottomTab currentBottomTab;
   final ValueChanged<MoviqTopTab>? onTopTabSelected;
   final ValueChanged<MoviqBottomTab>? onBottomTabSelected;
+  final bool showTopNav;
 
   static const Color _background = Colors.black;
   static const Color _pink = Color(0xFFE5A3A3);
@@ -31,10 +33,11 @@ class MoviqScaffold extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             const _MoviqHeader(),
-            _TopNav(
-              activeTab: currentTopTab,
-              onSelected: onTopTabSelected,
-            ),
+            if (showTopNav)
+              _TopNav(
+                activeTab: currentTopTab,
+                onSelected: onTopTabSelected,
+              ),
             Expanded(child: body),
             _BottomNav(
               activeTab: currentBottomTab,
