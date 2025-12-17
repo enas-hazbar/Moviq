@@ -1,19 +1,14 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'home_page.dart';
 import 'chat_page.dart';
 import 'favorites_page.dart';
 import 'profile_page.dart';
 import '../widgets/moviq_scaffold.dart';
+import '../widgets/nav_helpers.dart';
 
-class SearchPage extends StatefulWidget {
+class SearchPage extends StatelessWidget {
   const SearchPage({super.key});
-
-  @override
-  State<SearchPage> createState() => _SearchPageState();
-}
-
-class _SearchPageState extends State<SearchPage> {
-  String _query = '';
 
   @override
   Widget build(BuildContext context) {
@@ -22,74 +17,31 @@ class _SearchPageState extends State<SearchPage> {
       currentBottomTab: MoviqBottomTab.search,
       showTopNav: false,
       onBottomTabSelected: (tab) => _handleBottomNav(context, tab),
-      body: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text(
-              'Search',
-              style: TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.w700),
-            ),
-            const SizedBox(height: 12),
-            TextField(
-              onChanged: (value) => setState(() => _query = value),
-              style: const TextStyle(color: Colors.white),
-              decoration: InputDecoration(
-                hintText: 'Search movies...',
-                hintStyle: const TextStyle(color: Colors.white54),
-                filled: true,
-                fillColor: Colors.white12,
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: BorderSide.none,
-                ),
-                prefixIcon: const Icon(Icons.search, color: Colors.white70),
-              ),
-            ),
-            const SizedBox(height: 16),
-            Expanded(
-              child: Center(
-                child: Text(
-                  _query.isEmpty ? 'Start typing to search.' : 'Search for "$_query" coming soon.',
-                  style: const TextStyle(color: Colors.white70),
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
+      body: const SizedBox.shrink(),
     );
   }
 
   void _handleBottomNav(BuildContext context, MoviqBottomTab tab) {
+    navigateWithSlide(
+      context: context,
+      current: MoviqBottomTab.search,
+      target: tab,
+      builder: () => _pageForTab(tab),
+    );
+  }
+
+  Widget _pageForTab(MoviqBottomTab tab) {
     switch (tab) {
       case MoviqBottomTab.dashboard:
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(builder: (_) => const HomePage()),
-        );
-        break;
+        return const HomePage();
       case MoviqBottomTab.search:
-        break;
+        return const SearchPage();
       case MoviqBottomTab.chat:
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(builder: (_) => const ChatPage()),
-        );
-        break;
+        return const ChatPage();
       case MoviqBottomTab.favorites:
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(builder: (_) => const FavoritesPage()),
-        );
-        break;
+        return const FavoritesPage();
       case MoviqBottomTab.profile:
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(builder: (_) => const ProfilePage()),
-        );
-        break;
+        return const ProfilePage();
     }
   }
 }

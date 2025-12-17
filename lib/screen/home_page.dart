@@ -8,6 +8,7 @@ import 'favorites_page.dart';
 import 'profile_page.dart';
 import 'search_page.dart';
 import '../widgets/moviq_scaffold.dart';
+import '../widgets/nav_helpers.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -36,7 +37,7 @@ class _HomePageState extends State<HomePage> {
     return MoviqScaffold(
       currentTopTab: MoviqTopTab.films,
       currentBottomTab: MoviqBottomTab.dashboard,
-      showTopNav: false,
+      showTopNav: true,
       onBottomTabSelected: (tab) => _handleBottomNav(context, tab),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
@@ -70,33 +71,26 @@ class _HomePageState extends State<HomePage> {
   }
 
   void _handleBottomNav(BuildContext context, MoviqBottomTab tab) {
+    navigateWithSlide(
+      context: context,
+      current: MoviqBottomTab.dashboard,
+      target: tab,
+      builder: () => _pageForTab(tab),
+    );
+  }
+
+  Widget _pageForTab(MoviqBottomTab tab) {
     switch (tab) {
       case MoviqBottomTab.dashboard:
-        break;
+        return const HomePage();
       case MoviqBottomTab.search:
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(builder: (_) => const SearchPage()),
-        );
-        break;
+        return const SearchPage();
       case MoviqBottomTab.chat:
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(builder: (_) => const ChatPage()),
-        );
-        break;
+        return const ChatPage();
       case MoviqBottomTab.favorites:
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(builder: (_) => const FavoritesPage()),
-        );
-        break;
+        return const FavoritesPage();
       case MoviqBottomTab.profile:
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(builder: (_) => const ProfilePage()),
-        );
-        break;
+        return const ProfilePage();
     }
   }
 }

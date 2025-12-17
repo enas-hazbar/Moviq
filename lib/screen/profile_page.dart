@@ -5,6 +5,7 @@ import 'favorites_page.dart';
 import 'search_page.dart';
 import 'home_page.dart';
 import 'splash_screen.dart';
+import '../widgets/nav_helpers.dart';
 
 class ProfilePage extends StatelessWidget {
   const ProfilePage({super.key});
@@ -39,33 +40,26 @@ class ProfilePage extends StatelessWidget {
   }
 
   void _handleBottomNav(BuildContext context, MoviqBottomTab tab) {
+    navigateWithSlide(
+      context: context,
+      current: MoviqBottomTab.profile,
+      target: tab,
+      builder: () => _pageForTab(tab),
+    );
+  }
+
+  Widget _pageForTab(MoviqBottomTab tab) {
     switch (tab) {
       case MoviqBottomTab.dashboard:
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(builder: (_) => const HomePage()),
-        );
-        break;
+        return const HomePage();
       case MoviqBottomTab.search:
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(builder: (_) => const SearchPage()),
-        );
-        break;
+        return const SearchPage();
       case MoviqBottomTab.chat:
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(builder: (_) => const ChatPage()),
-        );
-        break;
+        return const ChatPage();
       case MoviqBottomTab.favorites:
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(builder: (_) => const FavoritesPage()),
-        );
-        break;
+        return const FavoritesPage();
       case MoviqBottomTab.profile:
-        break;
+        return const ProfilePage();
     }
   }
 }

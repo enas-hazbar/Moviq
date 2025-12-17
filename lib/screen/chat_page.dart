@@ -4,6 +4,7 @@ import 'favorites_page.dart';
 import 'profile_page.dart';
 import 'search_page.dart';
 import 'home_page.dart';
+import '../widgets/nav_helpers.dart';
 
 class ChatPage extends StatelessWidget {
   const ChatPage({super.key});
@@ -25,33 +26,26 @@ class ChatPage extends StatelessWidget {
   }
 
   void _handleBottomNav(BuildContext context, MoviqBottomTab tab) {
+    navigateWithSlide(
+      context: context,
+      current: MoviqBottomTab.chat,
+      target: tab,
+      builder: () => _pageForTab(tab),
+    );
+  }
+
+  Widget _pageForTab(MoviqBottomTab tab) {
     switch (tab) {
       case MoviqBottomTab.dashboard:
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(builder: (_) => const HomePage()),
-        );
-        break;
+        return const HomePage();
       case MoviqBottomTab.search:
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(builder: (_) => const SearchPage()),
-        );
-        break;
+        return const SearchPage();
       case MoviqBottomTab.chat:
-        break;
+        return const ChatPage();
       case MoviqBottomTab.favorites:
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(builder: (_) => const FavoritesPage()),
-        );
-        break;
+        return const FavoritesPage();
       case MoviqBottomTab.profile:
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(builder: (_) => const ProfilePage()),
-        );
-        break;
+        return const ProfilePage();
     }
   }
 }
