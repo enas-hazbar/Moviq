@@ -1,23 +1,36 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
+
 class Review {
   final String userId;
   final String userName;
-  final int rating;
-  final String review;
+  final int rating; // 1..10
+  final String? review;
 
   Review({
     required this.userId,
     required this.userName,
     required this.rating,
-    required this.review,
+    this.review,
   });
 
-  Map<String, dynamic> toMap() {
+  Map<String, dynamic> toMapForCreate() {
     return {
       'userId': userId,
       'userName': userName,
       'rating': rating,
       'review': review,
-      'createdAt': DateTime.now(),
+      'createdAt': FieldValue.serverTimestamp(),
+      'updatedAt': FieldValue.serverTimestamp(),
+    };
+  }
+
+  Map<String, dynamic> toMapForUpdate() {
+    return {
+      'userId': userId,
+      'userName': userName,
+      'rating': rating,
+      'review': review,
+      'updatedAt': FieldValue.serverTimestamp(),
     };
   }
 }
