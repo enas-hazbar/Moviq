@@ -1,59 +1,57 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-
 import 'home_page.dart';
 import 'chat_page.dart';
 import 'favorites_page.dart';
 import 'profile_page.dart';
 import 'movie_details_page.dart';
-
 import '../widgets/moviq_scaffold.dart';
 import '../services/tmdb_service.dart';
 import '../models/movie.dart';
 import '../config/tmdb_config.dart';
-
-class SearchPage extends StatelessWidget {
+ 
+class SearchPage extends StatefulWidget {
   const SearchPage({super.key});
-
+ 
   @override
   State<SearchPage> createState() => _SearchPageState();
 }
-
+ 
 class _SearchPageState extends State<SearchPage> {
   final TmdbService _service = TmdbService();
   final TextEditingController _controller = TextEditingController();
-
+ 
   List<Movie> _results = [];
   Map<int, String> _genres = {};
   Map<int, bool> _expandedDecades = {};
-
-
+ 
+ 
   int? _selectedGenre;
   double? _selectedRating;
   int? _startYear;
   int? _endYear;
-
+ 
   bool _filtersOpen = false;
   bool _genreOpen = false;
   bool _decadeOpen = false;
   bool _ratingOpen = false;
-
+ 
   bool _loading = false;
   List<String> _history = [];
   bool _showHistory = false;
-
+ 
   @override
   void initState() {
     super.initState();
     _loadGenres();
     _loadSearchHistory();
   }
-
+ 
   Future<void> _loadGenres() async {
     _genres = await _service.getGenres();
     setState(() {});
   }
-
+ 
   Future<void> _loadSearchHistory() async {
     final userId = 'CURRENT_USER_ID'; // replace with real user ID
     final snapshot = await FirebaseFirestore.instance
@@ -63,28 +61,28 @@ class _SearchPageState extends State<SearchPage> {
         .orderBy('timestamp', descending: true)
         .limit(10)
         .get();
-
+ 
     setState(() {
       _history = snapshot.docs.map((d) => d.id).toList();
     });
   }
-
+ 
   Future<void> _saveSearchTerm(String term) async {
     if (term.trim().isEmpty) return;
-
+ 
     final userId = 'CURRENT_USER_ID'; // replace with real user ID
     final docRef = FirebaseFirestore.instance
         .collection('users')
         .doc(userId)
         .collection('search_history');
-
+ 
     await docRef.doc(term).set({'timestamp': FieldValue.serverTimestamp()});
     _loadSearchHistory();
   }
-
+ 
   Future<void> _search() async {
     setState(() => _loading = true);
-
+ 
     if (_controller.text.isNotEmpty) {
       _results = await _service.searchMovies(_controller.text);
       _saveSearchTerm(_controller.text);
@@ -96,10 +94,10 @@ class _SearchPageState extends State<SearchPage> {
         minRating: _selectedRating,
       );
     }
-
+ 
     setState(() => _loading = false);
   }
-
+ 
   void _clearAll() {
     setState(() {
       _controller.clear();
@@ -111,7 +109,7 @@ class _SearchPageState extends State<SearchPage> {
       _showHistory = false;
     });
   }
-
+ 
   @override
   Widget build(BuildContext context) {
     return MoviqScaffold(
@@ -135,12 +133,12 @@ class _SearchPageState extends State<SearchPage> {
                   ),
                 ),
                 const SizedBox(height: 12),
-
+ 
                 // 🔍 SEARCH BAR
                 _buildSearchBar(),
-
+ 
                 const SizedBox(height: 12),
-
+ 
                 // 🔽 FILTER HEADER RIGHT UNDER SEARCH BAR
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -178,17 +176,17 @@ class _SearchPageState extends State<SearchPage> {
                     )
                   ],
                 ),
-
+ 
                 if (_filtersOpen) _buildFilters(), // ⚡ Filters appear here
-
+ 
                 const SizedBox(height: 12),
-
+ 
                 /// 🎬 RESULTS BELOW FILTERS
                 _buildResults(),
               ],
             ),
           ),
-
+ 
           // 🔽 GOOGLE-STYLE HISTORY DROPDOWN
           if (_showHistory && _controller.text.isEmpty)
             Positioned(
@@ -224,7 +222,7 @@ class _SearchPageState extends State<SearchPage> {
       ),
     );
   }
-
+ 
   Widget _buildSearchBar() {
     return TextField(
       controller: _controller,
@@ -251,7 +249,7 @@ class _SearchPageState extends State<SearchPage> {
       },
     );
   }
-
+ 
   Widget _buildFilters() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -280,7 +278,7 @@ class _SearchPageState extends State<SearchPage> {
       ],
     );
   }
-
+ 
   Widget _buildSection(
       {required String title,
       required bool isOpen,
@@ -310,7 +308,7 @@ class _SearchPageState extends State<SearchPage> {
       ],
     );
   }
-
+ 
   // 📅 DECADES
   Widget _buildDecades() {
   final decades = [
@@ -323,14 +321,14 @@ class _SearchPageState extends State<SearchPage> {
     {'label': '1960s', 'start': 1960, 'end': 1969},
     {'label': '1950s', 'start': 1950, 'end': 1959},
   ];
-
+ 
   return Column(
     children: decades.map((d) {
       final start = d['start'] as int;
       final end = d['end'] as int;
       final label = d['label'] as String;
       final isExpanded = _expandedDecades[start] ?? false;
-
+ 
       return Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -354,7 +352,7 @@ class _SearchPageState extends State<SearchPage> {
               _search();
             },
           ),
-
+ 
           // Expanded exact years
           if (isExpanded)
             Padding(
@@ -384,7 +382,7 @@ class _SearchPageState extends State<SearchPage> {
     }).toList(),
   );
 }
-
+ 
   // 🎭 GENRES
   Widget _buildGenres() {
     if (_genres.isEmpty) {
@@ -393,7 +391,7 @@ class _SearchPageState extends State<SearchPage> {
         style: TextStyle(color: Colors.white70),
       );
     }
-
+ 
     return Column(
       children: _genres.entries.map((g) {
         return RadioListTile(
@@ -409,7 +407,7 @@ class _SearchPageState extends State<SearchPage> {
       }).toList(),
     );
   }
-
+ 
   // ⭐ RATINGS
   Widget _buildRatings() {
     return Column(
@@ -419,7 +417,7 @@ class _SearchPageState extends State<SearchPage> {
       ],
     );
   }
-
+ 
   Widget _ratingOption(String label, double value) {
     return RadioListTile(
       value: value,
@@ -432,7 +430,7 @@ class _SearchPageState extends State<SearchPage> {
       activeColor: Colors.pinkAccent,
     );
   }
-
+ 
   // ================= RESULTS =================
   Widget _buildResults() {
     if (_loading) {
@@ -441,11 +439,11 @@ class _SearchPageState extends State<SearchPage> {
         child: Center(child: CircularProgressIndicator()),
       );
     }
-
+ 
     if (_results.isEmpty) {
       return const SizedBox();
     }
-
+ 
     return GridView.builder(
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
@@ -459,7 +457,7 @@ class _SearchPageState extends State<SearchPage> {
       itemBuilder: (context, index) {
         final movie = _results[index];
         if (movie.posterPath.isEmpty) return const SizedBox();
-
+ 
         return GestureDetector(
           onTap: () {
             Navigator.push(
@@ -480,29 +478,36 @@ class _SearchPageState extends State<SearchPage> {
       },
     );
   }
-
+ 
   // ================= NAV =================
   void _handleBottomNav(BuildContext context, MoviqBottomTab tab) {
-    navigateWithSlide(
-      context: context,
-      current: MoviqBottomTab.search,
-      target: tab,
-      builder: () => _pageForTab(tab),
-    );
-  }
-
-  Widget _pageForTab(MoviqBottomTab tab) {
     switch (tab) {
       case MoviqBottomTab.dashboard:
-        return const HomePage();
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (_) => const HomePage()),
+        );
+        break;
       case MoviqBottomTab.search:
-        return const SearchPage();
+        break;
       case MoviqBottomTab.chat:
-        return const ChatPage();
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (_) => const ChatPage()),
+        );
+        break;
       case MoviqBottomTab.favorites:
-        return const FavoritesPage();
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (_) => const FavoritesPage()),
+        );
+        break;
       case MoviqBottomTab.profile:
-        return const ProfilePage();
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (_) => const ProfilePage()),
+        );
+        break;
     }
   }
 }
