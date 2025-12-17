@@ -3,6 +3,10 @@ import '../services/tmdb_service.dart';
 import '../models/movie.dart';
 import '../config/tmdb_config.dart';
 import 'movie_details_page.dart';
+import 'chat_page.dart';
+import 'favorites_page.dart';
+import 'profile_page.dart';
+import 'search_page.dart';
 import '../widgets/moviq_scaffold.dart';
 
 class HomePage extends StatefulWidget {
@@ -32,6 +36,8 @@ class _HomePageState extends State<HomePage> {
     return MoviqScaffold(
       currentTopTab: MoviqTopTab.films,
       currentBottomTab: MoviqBottomTab.dashboard,
+      showTopNav: false,
+      onBottomTabSelected: (tab) => _handleBottomNav(context, tab),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
         child: Column(
@@ -61,6 +67,37 @@ class _HomePageState extends State<HomePage> {
         ),
       ),
     );
+  }
+
+  void _handleBottomNav(BuildContext context, MoviqBottomTab tab) {
+    switch (tab) {
+      case MoviqBottomTab.dashboard:
+        break;
+      case MoviqBottomTab.search:
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (_) => const SearchPage()),
+        );
+        break;
+      case MoviqBottomTab.chat:
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (_) => const ChatPage()),
+        );
+        break;
+      case MoviqBottomTab.favorites:
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (_) => const FavoritesPage()),
+        );
+        break;
+      case MoviqBottomTab.profile:
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (_) => const ProfilePage()),
+        );
+        break;
+    }
   }
 }
 
