@@ -578,6 +578,7 @@ class _ReviewSheetState extends State<_ReviewSheet> {
               TextField(
                 controller: _controller,
                 maxLines: 6,
+                style: TextStyle(color: Colors.black),
                 decoration: const InputDecoration(
                   hintText: 'Write your review...',
                   border: OutlineInputBorder(),
