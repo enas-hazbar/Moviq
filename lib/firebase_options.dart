@@ -87,4 +87,5 @@ class DefaultFirebaseOptions {
     storageBucket: 'moviq-1cbf7.firebasestorage.app',
     measurementId: 'G-3MTF2CF61F',
   );
+
 }
