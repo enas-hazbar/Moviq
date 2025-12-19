@@ -17,7 +17,7 @@
 	<key>PROJECT_ID</key>
 	<string>moviq-1cbf7</string>
 	<key>STORAGE_BUCKET</key>
-	<string>moviq-1cbf7.firebasestorage.app</string>
+	<string>moviq-1cbf7.appspot.com</string>
 	<key>IS_ADS_ENABLED</key>
 	<false></false>
 	<key>IS_ANALYTICS_ENABLED</key>
