@@ -9,6 +9,7 @@ import 'profile_page.dart';
 import 'search_page.dart';
 import '../widgets/moviq_scaffold.dart';
 import '../widgets/nav_helpers.dart';
+import 'reviews_page.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -38,6 +39,15 @@ class _HomePageState extends State<HomePage> {
       currentTopTab: MoviqTopTab.films,
       currentBottomTab: MoviqBottomTab.dashboard,
       showTopNav: true,
+          onTopTabSelected: (tab) {
+        if (tab == MoviqTopTab.reviews) {
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(builder: (_) => const ReviewsPage()),
+          );
+        }
+        // Films = already here → do nothing
+      },
       onBottomTabSelected: (tab) => _handleBottomNav(context, tab),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16),

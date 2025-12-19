@@ -1,12 +1,18 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 
 class Review {
+  final int movieId;
+  final String movieTitle;
+  final String posterPath;
   final String userId;
   final String userName;
-  final int rating; // 1..10
+  final int rating;
   final String? review;
 
   Review({
+    required this.movieId,
+    required this.movieTitle,
+    required this.posterPath,
     required this.userId,
     required this.userName,
     required this.rating,
@@ -15,6 +21,9 @@ class Review {
 
   Map<String, dynamic> toMapForCreate() {
     return {
+      'movieId': movieId,
+      'movieTitle': movieTitle,
+      'posterPath': posterPath,
       'userId': userId,
       'userName': userName,
       'rating': rating,
@@ -26,8 +35,8 @@ class Review {
 
   Map<String, dynamic> toMapForUpdate() {
     return {
-      'userId': userId,
-      'userName': userName,
+      'movieTitle': movieTitle,
+      'posterPath': posterPath,
       'rating': rating,
       'review': review,
       'updatedAt': FieldValue.serverTimestamp(),
