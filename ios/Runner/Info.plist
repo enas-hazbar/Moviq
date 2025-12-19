@@ -44,6 +44,10 @@
 		<string>https</string>
 		<string>http</string>
 	</array>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>We need photo access to let you pick a profile photo.</string>
+	<key>NSCameraUsageDescription</key>
+	<string>Camera access is used if you choose to take a profile photo.</string>
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
 	<key>NSAppleIDUsageDescription</key>

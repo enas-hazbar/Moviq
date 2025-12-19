@@ -1,14 +1,23 @@
 import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import '../widgets/moviq_scaffold.dart';
 import 'chat_page.dart';
 import 'favorites_page.dart';
 import 'search_page.dart';
 import 'home_page.dart';
-import 'splash_screen.dart';
+import 'settings_page.dart';
 import '../widgets/nav_helpers.dart';
 
 class ProfilePage extends StatelessWidget {
   const ProfilePage({super.key});
+
+  static const Color _pink = Color(0xFFE5A3A3);
+  static const TextStyle _sectionTitle = TextStyle(
+    color: Colors.white,
+    fontSize: 20,
+    fontWeight: FontWeight.w600,
+    height: 1.4,
+  );
 
   @override
   Widget build(BuildContext context) {
@@ -17,23 +26,45 @@ class ProfilePage extends StatelessWidget {
       currentBottomTab: MoviqBottomTab.profile,
       showTopNav: false,
       onBottomTabSelected: (tab) => _handleBottomNav(context, tab),
-      body: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Align(
-          alignment: Alignment.bottomCenter,
-          child: ElevatedButton(
-            onPressed: () {
-              Navigator.of(context).pushAndRemoveUntil(
-                MaterialPageRoute(builder: (_) => const SplashScreen()),
-                (_) => false,
-              );
-            },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.white,
-              foregroundColor: Colors.black,
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                IconButton(
+                  icon: const Icon(Icons.settings, color: Colors.white),
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      slideRoute(page: const SettingsPage(), fromRight: true),
+                    );
+                  },
+                ),
+              ],
             ),
-            child: const Text('Log out'),
-          ),
+            const SizedBox(height: 8),
+            Center(child: _ProfileAvatar()),
+            const SizedBox(height: 28),
+
+            // My Faves
+            const _SectionHeader(title: 'My Faves:'),
+            const SizedBox(height: 16),
+            const SizedBox(height: 140),
+            const SizedBox(height: 28),
+
+            // Recent Activity
+            const _SectionHeader(title: 'Recent Activity:'),
+            const SizedBox(height: 16),
+            const SizedBox(height: 160),
+            const SizedBox(height: 28),
+
+            // Friend List
+            const _SectionHeader(title: 'Friend List:'),
+            const SizedBox(height: 12),
+            const SizedBox(height: 60),
+          ],
         ),
       ),
     );
@@ -61,5 +92,204 @@ class ProfilePage extends StatelessWidget {
       case MoviqBottomTab.profile:
         return const ProfilePage();
     }
+  }
+}
+
+class _SectionHeader extends StatelessWidget {
+  const _SectionHeader({required this.title});
+
+  final String title;
+
+  @override
+  Widget build(BuildContext context) {
+    return Text(title, style: ProfilePage._sectionTitle);
+  }
+}
+
+class _ProfileAvatar extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return StreamBuilder<User?>(
+      stream: FirebaseAuth.instance.userChanges(),
+      builder: (context, snapshot) {
+        final user = snapshot.data ?? FirebaseAuth.instance.currentUser;
+        final photoUrl = user?.photoURL;
+        if (photoUrl == null || photoUrl.isEmpty) {
+          return const _AvatarShell(child: Icon(Icons.person, color: Colors.white, size: 48));
+        }
+        return _AvatarShell(
+          imageProvider: NetworkImage(photoUrl),
+        );
+      },
+    );
+  }
+}
+
+class _AvatarShell extends StatelessWidget {
+  const _AvatarShell({this.imageProvider, this.child});
+
+  final ImageProvider? imageProvider;
+  final Widget? child;
+
+  @override
+  Widget build(BuildContext context) {
+    return CircleAvatar(
+      radius: 44,
+      backgroundColor: Colors.white,
+      child: CircleAvatar(
+        radius: 40,
+        backgroundColor: Colors.black,
+        backgroundImage: imageProvider,
+        child: child,
+      ),
+    );
+  }
+}
+
+class _PosterPlaceholder extends StatelessWidget {
+  const _PosterPlaceholder({required this.label});
+
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: [
+        Container(
+          width: 90,
+          height: 130,
+          decoration: BoxDecoration(
+            color: Colors.white10,
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(color: Colors.white24),
+          ),
+          child: const Icon(Icons.movie, color: Colors.white54, size: 36),
+        ),
+        const SizedBox(height: 6),
+        Text(
+          label,
+          style: const TextStyle(color: Colors.white70, fontSize: 12),
+        ),
+      ],
+    );
+  }
+}
+
+class _PosterRow extends StatelessWidget {
+  const _PosterRow({required this.placeholders});
+
+  final List<_PosterPlaceholder> placeholders;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        for (final poster in placeholders) ...[
+          poster,
+          const SizedBox(width: 14),
+        ],
+      ],
+    );
+  }
+}
+
+class _RecentActivityCard extends StatelessWidget {
+  const _RecentActivityCard({
+    required this.title,
+    required this.subtitle,
+    this.poster,
+  });
+
+  final String title;
+  final String subtitle;
+  final Widget? poster;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: Colors.white10,
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: Colors.white24),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          poster ??
+              Container(
+                width: 90,
+                height: 130,
+                decoration: BoxDecoration(
+                  color: Colors.white12,
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: const Icon(Icons.image_not_supported, color: Colors.white54),
+              ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 16,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  subtitle,
+                  style: const TextStyle(
+                    color: Colors.white70,
+                    fontSize: 13,
+                    height: 1.4,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _FriendRow extends StatelessWidget {
+  const _FriendRow({
+    required this.name,
+    this.showButton = true,
+  });
+
+  final String name;
+  final bool showButton;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        const Icon(Icons.person_outline, color: Colors.white, size: 22),
+        const SizedBox(width: 8),
+        Text(
+          name,
+          style: const TextStyle(color: Colors.white, fontSize: 15),
+        ),
+        const Spacer(),
+        if (showButton)
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+            decoration: BoxDecoration(
+              color: ProfilePage._pink,
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: const Text(
+              'Remove',
+              style: TextStyle(color: Colors.white, fontSize: 12),
+            ),
+          ),
+      ],
+    );
   }
 }
