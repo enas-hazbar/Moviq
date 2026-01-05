@@ -11,6 +11,7 @@ import 'settings_page.dart';
 import 'friend_search_page.dart';
 import 'friend_profile_page.dart';
 import '../widgets/nav_helpers.dart';
+import '../config/tmdb_config.dart';
 
 class ProfilePage extends StatelessWidget {
   const ProfilePage({super.key});
@@ -61,7 +62,9 @@ class ProfilePage extends StatelessWidget {
             // Recent Activity
             const _SectionHeader(title: 'Recent Activity:'),
             const SizedBox(height: 16),
-            const SizedBox(height: 160),
+            _RecentActivityList(
+              userId: FirebaseAuth.instance.currentUser?.uid,
+            ),
             const SizedBox(height: 28),
 
             // Friend List
@@ -159,6 +162,150 @@ class _ProfileAvatar extends StatelessWidget {
           imageProvider: NetworkImage(photoUrl),
         );
       },
+    );
+  }
+}
+
+class _RecentActivityList extends StatelessWidget {
+  const _RecentActivityList({required this.userId});
+
+  final String? userId;
+
+  @override
+  Widget build(BuildContext context) {
+    if (userId == null) {
+      return const SizedBox.shrink();
+    }
+    final stream = FirebaseFirestore.instance
+        .collectionGroup('reviews')
+        .where('userId', isEqualTo: userId)
+        .orderBy('createdAt', descending: true)
+        .limit(3)
+        .snapshots()
+        .handleError((_) {});
+
+    return StreamBuilder<QuerySnapshot>(
+      stream: stream,
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const SizedBox(height: 80);
+        }
+        if (snapshot.hasError) {
+          return const Text(
+            'Unable to load recent activity.',
+            style: TextStyle(color: Colors.white70),
+          );
+        }
+        final docs = snapshot.data?.docs ?? [];
+        if (docs.isEmpty) {
+          return const Text(
+            'No recent activity yet.',
+            style: TextStyle(color: Colors.white70),
+          );
+        }
+        return Column(
+          children: [
+            for (final doc in docs)
+              _RecentReviewRow(data: doc.data() as Map<String, dynamic>),
+          ],
+        );
+      },
+    );
+  }
+}
+
+class _RecentReviewRow extends StatelessWidget {
+  const _RecentReviewRow({required this.data});
+
+  final Map<String, dynamic> data;
+
+  @override
+  Widget build(BuildContext context) {
+    final String reviewText = (data['review'] as String?) ?? '';
+    final int rating10 = (data['rating'] as num?)?.toInt() ?? 0;
+    final int starRating = ((rating10 / 2).ceil()).clamp(0, 5);
+    final String movieTitle = (data['movieTitle'] as String?) ?? 'Unknown movie';
+    final String posterPath = (data['posterPath'] as String?) ?? '';
+
+    final posterUrl =
+        posterPath.isEmpty ? null : '${TmdbConfig.imageBaseUrl}$posterPath';
+
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          ClipRRect(
+            borderRadius: BorderRadius.circular(6),
+            child: posterUrl == null
+                ? Container(
+                    width: 60,
+                    height: 84,
+                    color: Colors.white12,
+                    alignment: Alignment.center,
+                    child: const Icon(
+                      Icons.movie_outlined,
+                      color: Colors.white38,
+                      size: 22,
+                    ),
+                  )
+                : Image.network(
+                    posterUrl,
+                    width: 60,
+                    height: 84,
+                    fit: BoxFit.cover,
+                    errorBuilder: (_, __, ___) => Container(
+                      width: 60,
+                      height: 84,
+                      color: Colors.white12,
+                      alignment: Alignment.center,
+                      child: const Icon(
+                        Icons.movie_outlined,
+                        color: Colors.white38,
+                        size: 22,
+                      ),
+                    ),
+                  ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    ...List.generate(
+                      5,
+                      (i) => Icon(
+                        i < starRating ? Icons.star : Icons.star_border,
+                        size: 16,
+                        color: const Color(0xFFB37C78),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Text(
+                      '$rating10/10',
+                      style: const TextStyle(color: Colors.white54, fontSize: 12),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  reviewText.trim().isEmpty ? 'Rating only' : reviewText,
+                  maxLines: 3,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(color: Colors.white, fontSize: 13.5, height: 1.35),
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  movieTitle,
+                  style: const TextStyle(color: Colors.white70, fontSize: 12.5),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

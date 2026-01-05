@@ -6,6 +6,7 @@ import '../config/tmdb_config.dart';
 import 'movie_details_page.dart';
 import 'home_page.dart';
 import 'reviews_page.dart';
+import 'friends_page.dart';
 import 'add_movie_page.dart';
 import 'search_page.dart';
 import 'chat_page.dart';
@@ -82,6 +83,12 @@ class WatchlistPage extends StatelessWidget {
           Navigator.pushReplacement(
             context,
             MaterialPageRoute(builder: (_) => const ReviewsPage()),
+          );
+        }
+        if (tab == MoviqTopTab.friends) {
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(builder: (_) => const FriendsPage()),
           );
         }
       },
