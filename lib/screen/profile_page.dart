@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import '../widgets/moviq_scaffold.dart';
 import 'chat_page.dart';
 import 'favorites_page.dart';
@@ -109,14 +110,32 @@ class _SectionHeader extends StatelessWidget {
 class _ProfileAvatar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
-    return StreamBuilder<User?>(
-      stream: FirebaseAuth.instance.userChanges(),
-      builder: (context, snapshot) {
-        final user = snapshot.data ?? FirebaseAuth.instance.currentUser;
-        final photoUrl = user?.photoURL;
+    final user = FirebaseAuth.instance.currentUser;
+
+    if (user == null) {
+      return const _AvatarShell(
+        child: Icon(Icons.person, color: Colors.white, size: 48),
+      );
+    }
+
+    return StreamBuilder<DocumentSnapshot<Map<String, dynamic>>>(
+      stream: FirebaseFirestore.instance
+          .collection('users')
+          .doc(user.uid)
+          .snapshots(),
+      builder: (context, snap) {
+        final data = snap.data?.data();
+        final firestoreUrl = data?['photoUrl'] as String?;
+        final photoUrl = (firestoreUrl != null && firestoreUrl.isNotEmpty)
+            ? firestoreUrl
+            : user.photoURL;
+
         if (photoUrl == null || photoUrl.isEmpty) {
-          return const _AvatarShell(child: Icon(Icons.person, color: Colors.white, size: 48));
+          return const _AvatarShell(
+            child: Icon(Icons.person, color: Colors.white, size: 48),
+          );
         }
+
         return _AvatarShell(
           imageProvider: NetworkImage(photoUrl),
         );

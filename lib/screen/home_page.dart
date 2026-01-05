@@ -10,6 +10,7 @@ import 'search_page.dart';
 import '../widgets/moviq_scaffold.dart';
 import '../widgets/nav_helpers.dart';
 import 'reviews_page.dart';
+import 'watchlist_page.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -46,6 +47,12 @@ class _HomePageState extends State<HomePage> {
             MaterialPageRoute(builder: (_) => const ReviewsPage()),
           );
         }
+         if (tab == MoviqTopTab.list) {
+    Navigator.pushReplacement(
+      context,
+      MaterialPageRoute(builder: (_) => const WatchlistPage()),
+    );
+  }
         // Films = already here → do nothing
       },
       onBottomTabSelected: (tab) => _handleBottomNav(context, tab),

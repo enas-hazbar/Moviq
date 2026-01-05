@@ -6,6 +6,7 @@ class Review {
   final String posterPath;
   final String userId;
   final String userName;
+  final String? userPhoto;
   final int rating;
   final String? review;
 
@@ -16,6 +17,7 @@ class Review {
     required this.userId,
     required this.userName,
     required this.rating,
+    this.userPhoto,
     this.review,
   });
 
@@ -26,6 +28,7 @@ class Review {
       'posterPath': posterPath,
       'userId': userId,
       'userName': userName,
+      'userPhoto': userPhoto,
       'rating': rating,
       'review': review,
       'createdAt': FieldValue.serverTimestamp(),
@@ -37,6 +40,7 @@ class Review {
     return {
       'movieTitle': movieTitle,
       'posterPath': posterPath,
+      'userName': userName, 
       'rating': rating,
       'review': review,
       'updatedAt': FieldValue.serverTimestamp(),

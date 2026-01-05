@@ -121,6 +121,8 @@ class _SettingsPageState extends State<SettingsPage> {
 
   Future<void> _loadUser() async {
     final user = FirebaseAuth.instance.currentUser;
+    print('AUTH UID: ${user?.uid}');
+
     if (user == null) return;
 
     final email = user.email ?? '';
@@ -150,63 +152,69 @@ class _SettingsPageState extends State<SettingsPage> {
     });
   }
 
-  Future<void> _saveProfileImage() async {
-    final user = FirebaseAuth.instance.currentUser;
-    if (user == null) return;
+Future<void> _saveProfileImage() async {
+  final user = FirebaseAuth.instance.currentUser;
+  if (user == null) return;
 
-    if (_profileImage == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Pick a photo first')),
-      );
-      return;
-    }
-
-    setState(() => _isSaving = true);
-
-    try {
-      // ✅ This path MUST match your Storage rules
-      final ref = FirebaseStorage.instance
-          .ref()
-          .child('profile_photos/${user.uid}.jpg');
-
-      // ✅ Upload and wait
-      final snap = await ref.putFile(
-        _profileImage!,
-        SettableMetadata(contentType: 'image/jpeg'),
-      );
-
-      // ✅ Ensure object exists, then get URL (prevents object-not-found confusion)
-      await snap.ref.getMetadata();
-      final url = await snap.ref.getDownloadURL();
-
-      // ✅ Update Auth + reload (helps Profile page update)
-      await user.updatePhotoURL(url);
-      await user.reload();
-
-      // ✅ Save in Firestore (recommended source for UI)
-      await FirebaseFirestore.instance.collection('users').doc(user.uid).set({
-        'photoUrl': url,
-        'updatedAt': FieldValue.serverTimestamp(),
-      }, SetOptions(merge: true));
-
-      if (!mounted) return;
-      setState(() => _photoUrl = url);
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Profile photo saved')),
-      );
-    } on FirebaseException catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Failed: ${e.code} - ${e.message ?? ''}')),
-      );
-    } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Failed to save photo: $e')),
-      );
-    } finally {
-      if (mounted) setState(() => _isSaving = false);
-    }
+  if (_profileImage == null) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Pick a photo first')),
+    );
+    return;
   }
+
+  setState(() => _isSaving = true);
+
+  try {
+final storage = FirebaseStorage.instanceFor(
+  bucket: 'gs://moviq-1cbf7.firebasestorage.app',
+);
+
+final fileName = DateTime.now().millisecondsSinceEpoch;
+final ref = storage.ref('profile_photos/${user.uid}/avatar_$fileName.jpg');
+
+print('USING BUCKET: ${storage.app.options.storageBucket}');
+print('UPLOAD PATH: ${ref.fullPath}');
+
+final task = ref.putFile(
+  _profileImage!,
+  SettableMetadata(contentType: 'image/jpeg'),
+);
+
+await task;
+final url = await ref.getDownloadURL();
+
+    // Update Firebase Auth
+    await user.updatePhotoURL(url);
+    await user.reload();
+
+    // Save to Firestore
+    await FirebaseFirestore.instance
+        .collection('users')
+        .doc(user.uid)
+        .set({
+      'photoUrl': url,
+      'updatedAt': FieldValue.serverTimestamp(),
+    }, SetOptions(merge: true));
+
+    if (!mounted) return;
+    setState(() => _photoUrl = url);
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Profile photo saved')),
+    );
+  } on FirebaseException catch (e) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('Firebase error: ${e.code}')),
+    );
+  } catch (e) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('Error: $e')),
+    );
+  } finally {
+    if (mounted) setState(() => _isSaving = false);
+  }
+}
 }
 
 class _UploadPhotoRow extends StatelessWidget {

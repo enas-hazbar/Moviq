@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-
 import '../services/tmdb_service.dart';
 import '../services/review_service.dart';
 import '../config/tmdb_config.dart';
@@ -8,6 +7,7 @@ import '../models/movie.dart';
 import '../models/review.dart';
 import '../widgets/trailer_player.dart';
 import 'actor_details_page.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 class MovieDetailsPage extends StatefulWidget {
   final int movieId;
@@ -21,22 +21,143 @@ class MovieDetailsPage extends StatefulWidget {
 class _MovieDetailsPageState extends State<MovieDetailsPage> {
   final TmdbService _tmdbService = TmdbService();
   final ReviewService _reviewService = ReviewService();
-
+  String? _username;
   late Future<Map<String, dynamic>> _movie;
   late Future<List<dynamic>> _videos;
   late Future<Map<String, dynamic>> _credits;
   late Future<Map<String, dynamic>> _providers;
   late Future<List<Movie>> _similar;
+  Stream<bool> _isInWatchlist(int movieId) {
+  final user = FirebaseAuth.instance.currentUser;
+  if (user == null) return const Stream.empty();
 
+  return FirebaseFirestore.instance
+      .collection('users')
+      .doc(user.uid)
+      .collection('watchlist')
+      .doc(movieId.toString())
+      .snapshots()
+      .map((doc) => doc.exists);
+}
+
+Future<void> _loadUsername() async {
+  final user = FirebaseAuth.instance.currentUser;
+  if (user == null) return;
+
+  final doc = await FirebaseFirestore.instance
+      .collection('users')
+      .doc(user.uid)
+      .get();
+
+  if (!mounted) return;
+
+  setState(() {
+    _username = doc.data()?['username'] as String?;
+  });
+}
   @override
   void initState() {
     super.initState();
+      _loadUsername(); 
     _movie = _tmdbService.getMovieDetails(widget.movieId);
     _videos = _tmdbService.getMovieVideos(widget.movieId);
     _credits = _tmdbService.getCredits(widget.movieId);
     _providers = _tmdbService.getWatchProviders(widget.movieId);
     _similar = _tmdbService.getSimilarMovies(widget.movieId);
   }
+Widget _watchlistButton({
+  required int movieId,
+  required String title,
+  required String posterPath,
+}) {
+  return StreamBuilder<bool>(
+    stream: _isInWatchlist(movieId),
+    builder: (context, snapshot) {
+      final inWatchlist = snapshot.data ?? false;
+
+      return SizedBox(
+        width: double.infinity,
+        child: ElevatedButton.icon(
+          style: ElevatedButton.styleFrom(
+            backgroundColor:
+                inWatchlist ? Colors.transparent : const Color(0xFFE5A3A3),
+            foregroundColor: Colors.white,
+            side: inWatchlist
+                ? const BorderSide(color: Color(0xFFE5A3A3))
+                : BorderSide.none,
+            padding: const EdgeInsets.symmetric(vertical: 14),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(10),
+            ),
+          ),
+          icon: Icon(
+            inWatchlist ? Icons.check : Icons.add,
+            color: const Color(0xFFE5A3A3),
+          ),
+          label: Text(
+            inWatchlist ? 'In Watchlist' : 'Add to Watchlist',
+            style: const TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          onPressed: () async {
+            if (inWatchlist) {
+              await _removeFromWatchlist(movieId);
+              if (!mounted) return;
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('Removed from watchlist')),
+              );
+            } else {
+              await _addToWatchlist(
+                movieId: movieId,
+                title: title,
+                posterPath: posterPath,
+              );
+              if (!mounted) return;
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('Added to watchlist')),
+              );
+            }
+          },
+        ),
+      );
+    },
+  );
+}
+
+Future<void> _addToWatchlist({
+  required int movieId,
+  required String title,
+  required String posterPath,
+}) async {
+  final user = FirebaseAuth.instance.currentUser;
+  if (user == null) return;
+
+  await FirebaseFirestore.instance
+      .collection('users')
+      .doc(user.uid)
+      .collection('watchlist')
+      .doc(movieId.toString())
+      .set({
+    'movieId': movieId,
+    'title': title,
+    'posterPath': posterPath,
+    'addedAt': FieldValue.serverTimestamp(),
+  });
+}
+
+Future<void> _removeFromWatchlist(int movieId) async {
+  final user = FirebaseAuth.instance.currentUser;
+  if (user == null) return;
+
+  await FirebaseFirestore.instance
+      .collection('users')
+      .doc(user.uid)
+      .collection('watchlist')
+      .doc(movieId.toString())
+      .delete();
+}
 
   @override
   Widget build(BuildContext context) {
@@ -63,10 +184,20 @@ class _MovieDetailsPageState extends State<MovieDetailsPage> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Image.network(
-                  TmdbConfig.imageBaseUrl + (movie['poster_path'] ?? ''),
+              ClipRRect(
+                borderRadius: BorderRadius.circular(12),
+                child: Image.network(
+                  TmdbConfig.imageBaseUrl + posterPath,
+                  width: double.infinity,
+                  fit: BoxFit.cover,
+                  errorBuilder: (_, __, ___) => Container(
+                    height: 350,
+                    color: Colors.white12,
+                    alignment: Alignment.center,
+                    child: const Icon(Icons.movie_outlined, color: Colors.white38, size: 50),
+                  ),
                 ),
-
+              ),
                 const SizedBox(height: 16),
 
                 Text(
@@ -79,6 +210,13 @@ class _MovieDetailsPageState extends State<MovieDetailsPage> {
                 ),
 
                 const SizedBox(height: 12),
+                _watchlistButton(
+                movieId: widget.movieId,
+                title: movieTitle,
+                posterPath: posterPath,
+              ),
+
+              const SizedBox(height: 16),
 
                 _buildRatingsRow(tmdbRating),
 
@@ -265,7 +403,7 @@ Future<void> _openReviewSheet({
         movieTitle: movieTitle,
         posterPath: posterPath,
         userId: user.uid,
-        userName: user.email ?? 'User',
+        userName: _username ?? 'User',
         reviewService: _reviewService,
       );
 
@@ -274,7 +412,6 @@ Future<void> _openReviewSheet({
 
     if (mounted) setState(() {});
   }
-
   /// Trailer
   Widget _buildTrailer() {
     return FutureBuilder<List<dynamic>>(
@@ -565,6 +702,8 @@ class _ReviewSheet extends StatefulWidget {
 
 class _ReviewSheetState extends State<_ReviewSheet> {
   final TextEditingController _controller = TextEditingController();
+  final user = FirebaseAuth.instance.currentUser;
+
   int _rating = 0; // require rating 1..10
   bool _saving = false;
 
@@ -704,6 +843,7 @@ class _ReviewSheetState extends State<_ReviewSheet> {
                                   posterPath: widget.posterPath,
                                   userId: widget.userId,
                                   userName: widget.userName,
+                                  userPhoto: user?.photoURL,
                                   rating: _rating,
                                   review: _controller.text.trim().isEmpty
                                       ? null

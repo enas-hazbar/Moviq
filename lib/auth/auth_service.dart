@@ -87,7 +87,12 @@ class AuthService {
       final doc = _firestore.collection('users').doc(user.uid);
       try {
         if (!(await doc.get()).exists) {
-          await doc.set(user.toMap());
+          await doc.set({
+            'uid': user.uid,
+            'email': user.email,
+            'provider': user.provider,
+            'username': user.email.split('@').first,
+          });
         }
       } catch (e) {
         print("Firestore access failed for Google sign-in: $e");
