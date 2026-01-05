@@ -1,12 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import '../widgets/moviq_scaffold.dart';
 import 'chat_page.dart';
 import 'favorites_page.dart';
 import 'search_page.dart';
 import 'home_page.dart';
 import 'settings_page.dart';
+import 'friend_search_page.dart';
+import 'friend_profile_page.dart';
 import '../widgets/nav_helpers.dart';
 
 class ProfilePage extends StatelessWidget {
@@ -62,9 +65,25 @@ class ProfilePage extends StatelessWidget {
             const SizedBox(height: 28),
 
             // Friend List
-            const _SectionHeader(title: 'Friend List:'),
+            Row(
+              children: [
+                const _SectionHeader(title: 'Friend List:'),
+                const Spacer(),
+                IconButton(
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      slideRoute(page: const FriendSearchPage(), fromRight: true),
+                    );
+                  },
+                  icon: const Icon(Icons.add_circle_outline, color: Colors.white),
+                ),
+              ],
+            ),
             const SizedBox(height: 12),
-            const SizedBox(height: 60),
+            const _FriendRequestsPanel(),
+            const SizedBox(height: 12),
+            const _FriendList(),
           ],
         ),
       ),
@@ -140,6 +159,357 @@ class _ProfileAvatar extends StatelessWidget {
           imageProvider: NetworkImage(photoUrl),
         );
       },
+    );
+  }
+}
+
+class _FriendList extends StatelessWidget {
+  const _FriendList();
+
+  @override
+  Widget build(BuildContext context) {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) {
+      return const SizedBox.shrink();
+    }
+    final friendsStream = FirebaseFirestore.instance
+        .collection('users')
+        .doc(user.uid)
+        .collection('friends')
+        .orderBy('username')
+        .snapshots()
+        .handleError((_) {});
+
+    return StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
+      stream: friendsStream,
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const SizedBox(height: 24);
+        }
+        if (snapshot.hasError) {
+          return const Text(
+            'Unable to load friends.',
+            style: TextStyle(color: Colors.white70),
+          );
+        }
+        final docs = snapshot.data?.docs ?? [];
+        if (docs.isEmpty) {
+          return const SizedBox.shrink();
+        }
+        return Column(
+          children: [
+            for (final doc in docs)
+              _FriendRow(
+                friendId: doc.id,
+                username: (doc.data()['username'] as String?) ?? 'User',
+                photoUrl: doc.data()['photoUrl'] as String?,
+              ),
+          ],
+        );
+      },
+    );
+  }
+}
+
+class _FriendRequestsPanel extends StatefulWidget {
+  const _FriendRequestsPanel();
+
+  @override
+  State<_FriendRequestsPanel> createState() => _FriendRequestsPanelState();
+}
+
+class _FriendRequestsPanelState extends State<_FriendRequestsPanel> {
+  bool _expanded = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) {
+      return const SizedBox.shrink();
+    }
+    final stream = FirebaseFirestore.instance
+        .collection('users')
+        .doc(user.uid)
+        .collection('friend_requests')
+        .orderBy('createdAt', descending: true)
+        .snapshots()
+        .handleError((_) {});
+
+    return StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
+      stream: stream,
+      builder: (context, snapshot) {
+        final docs = snapshot.data?.docs ?? [];
+        final count = docs.length;
+        return Column(
+          children: [
+            InkWell(
+              onTap: count == 0 ? null : () => setState(() => _expanded = !_expanded),
+              child: Row(
+                children: [
+                  const Text(
+                    'Requests',
+                    style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w600),
+                  ),
+                  const SizedBox(width: 8),
+                  _RequestCount(count: count),
+                  const Spacer(),
+                  Icon(
+                    _expanded ? Icons.expand_less : Icons.expand_more,
+                    color: Colors.white70,
+                  ),
+                ],
+              ),
+            ),
+            if (_expanded && count > 0) ...[
+              const SizedBox(height: 10),
+              for (final doc in docs)
+                _RequestActionRow(
+                  requesterId: doc.id,
+                  username: (doc.data()['username'] as String?) ?? 'User',
+                  photoUrl: doc.data()['photoUrl'] as String?,
+                ),
+            ],
+          ],
+        );
+      },
+    );
+  }
+}
+
+class _RequestCount extends StatelessWidget {
+  const _RequestCount({required this.count});
+
+  final int count;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+      decoration: BoxDecoration(
+        color: ProfilePage._pink,
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Text(
+        '$count',
+        style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w600),
+      ),
+    );
+  }
+}
+
+class _RequestActionRow extends StatelessWidget {
+  const _RequestActionRow({
+    required this.requesterId,
+    required this.username,
+    required this.photoUrl,
+  });
+
+  final String requesterId;
+  final String username;
+  final String? photoUrl;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8),
+      child: Row(
+        children: [
+          CircleAvatar(
+            radius: 14,
+            backgroundColor: Colors.white,
+            child: CircleAvatar(
+              radius: 12,
+              backgroundColor: Colors.black,
+              backgroundImage:
+                  (photoUrl != null && photoUrl!.isNotEmpty) ? NetworkImage(photoUrl!) : null,
+              child: (photoUrl == null || photoUrl!.isEmpty)
+                  ? const Icon(Icons.person, color: Colors.white, size: 14)
+                  : null,
+            ),
+          ),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              username,
+              style: const TextStyle(color: Colors.white, fontSize: 15),
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+          TextButton(
+            onPressed: () => _ignoreRequest(context, requesterId),
+            style: TextButton.styleFrom(
+              backgroundColor: Colors.white12,
+              foregroundColor: Colors.white,
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            ),
+            child: const Text('Ignore', style: TextStyle(fontSize: 12)),
+          ),
+          const SizedBox(width: 8),
+          TextButton(
+            onPressed: () => _acceptRequest(context, requesterId, username, photoUrl),
+            style: TextButton.styleFrom(
+              backgroundColor: ProfilePage._pink,
+              foregroundColor: Colors.white,
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            ),
+            child: const Text('Accept', style: TextStyle(fontSize: 12)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _acceptRequest(
+    BuildContext context,
+    String fromUid,
+    String fromUsername,
+    String? fromPhoto,
+  ) async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return;
+    final users = FirebaseFirestore.instance.collection('users');
+    final meRef = users.doc(user.uid);
+    final fromRef = users.doc(fromUid);
+
+    final batch = FirebaseFirestore.instance.batch();
+    batch.set(
+      meRef.collection('friends').doc(fromUid),
+      {
+        'uid': fromUid,
+        'username': fromUsername,
+        'photoUrl': fromPhoto ?? '',
+      },
+    );
+    batch.set(
+      fromRef.collection('friends').doc(user.uid),
+      {
+        'uid': user.uid,
+        'username': _currentUsername(context) ?? 'User',
+        'photoUrl': _currentPhotoUrl(context) ?? '',
+      },
+    );
+    batch.delete(meRef.collection('friend_requests').doc(fromUid));
+    batch.delete(fromRef.collection('sent_requests').doc(user.uid));
+    await batch.commit();
+  }
+
+  Future<void> _ignoreRequest(BuildContext context, String fromUid) async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return;
+    final users = FirebaseFirestore.instance.collection('users');
+    final batch = FirebaseFirestore.instance.batch();
+    batch.delete(users.doc(user.uid).collection('friend_requests').doc(fromUid));
+    batch.delete(users.doc(fromUid).collection('sent_requests').doc(user.uid));
+    await batch.commit();
+  }
+
+  String? _currentUsername(BuildContext context) {
+    final user = FirebaseAuth.instance.currentUser;
+    final email = user?.email ?? '';
+    if (email.isNotEmpty && email.contains('@')) {
+      return email.split('@').first;
+    }
+    return null;
+  }
+
+  String? _currentPhotoUrl(BuildContext context) {
+    return FirebaseAuth.instance.currentUser?.photoURL;
+  }
+}
+
+class _FriendRow extends StatelessWidget {
+  const _FriendRow({
+    required this.friendId,
+    required this.username,
+    required this.photoUrl,
+  });
+
+  final String friendId;
+  final String username;
+  final String? photoUrl;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 10),
+      child: Row(
+        children: [
+          GestureDetector(
+            onTap: () {
+              Navigator.push(
+                context,
+                slideRoute(
+                  page: FriendProfilePage(
+                    userId: friendId,
+                    username: username,
+                    photoUrl: photoUrl,
+                  ),
+                  fromRight: true,
+                ),
+              );
+            },
+            child: CircleAvatar(
+              radius: 14,
+              backgroundColor: Colors.white,
+              child: CircleAvatar(
+                radius: 12,
+                backgroundColor: Colors.black,
+                backgroundImage:
+                    (photoUrl != null && photoUrl!.isNotEmpty) ? NetworkImage(photoUrl!) : null,
+                child: (photoUrl == null || photoUrl!.isEmpty)
+                    ? const Icon(Icons.person, color: Colors.white, size: 14)
+                    : null,
+              ),
+            ),
+          ),
+          const SizedBox(width: 8),
+          Text(
+            username,
+            style: const TextStyle(color: Colors.white, fontSize: 15),
+          ),
+          const Spacer(),
+          _RemoveFriendButton(friendId: friendId),
+        ],
+      ),
+    );
+  }
+}
+
+class _RemoveFriendButton extends StatelessWidget {
+  const _RemoveFriendButton({required this.friendId});
+
+  final String friendId;
+
+  @override
+  Widget build(BuildContext context) {
+    return TextButton(
+      onPressed: () async {
+        final user = FirebaseAuth.instance.currentUser;
+        if (user == null) return;
+        final batch = FirebaseFirestore.instance.batch();
+        final meRef = FirebaseFirestore.instance
+            .collection('users')
+            .doc(user.uid)
+            .collection('friends')
+            .doc(friendId);
+        final themRef = FirebaseFirestore.instance
+            .collection('users')
+            .doc(friendId)
+            .collection('friends')
+            .doc(user.uid);
+        batch.delete(meRef);
+        batch.delete(themRef);
+        await batch.commit();
+      },
+      style: TextButton.styleFrom(
+        backgroundColor: ProfilePage._pink,
+        foregroundColor: Colors.white,
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      ),
+      child: const Text('Remove', style: TextStyle(fontSize: 12)),
     );
   }
 }
@@ -272,43 +642,6 @@ class _RecentActivityCard extends StatelessWidget {
           ),
         ],
       ),
-    );
-  }
-}
-
-class _FriendRow extends StatelessWidget {
-  const _FriendRow({
-    required this.name,
-    this.showButton = true,
-  });
-
-  final String name;
-  final bool showButton;
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      children: [
-        const Icon(Icons.person_outline, color: Colors.white, size: 22),
-        const SizedBox(width: 8),
-        Text(
-          name,
-          style: const TextStyle(color: Colors.white, fontSize: 15),
-        ),
-        const Spacer(),
-        if (showButton)
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-            decoration: BoxDecoration(
-              color: ProfilePage._pink,
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: const Text(
-              'Remove',
-              style: TextStyle(color: Colors.white, fontSize: 12),
-            ),
-          ),
-      ],
     );
   }
 }
