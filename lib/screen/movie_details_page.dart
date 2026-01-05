@@ -9,6 +9,7 @@ import '../widgets/trailer_player.dart';
 import 'actor_details_page.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
+
 class MovieDetailsPage extends StatefulWidget {
   final int movieId;
 
@@ -184,24 +185,44 @@ Future<void> _removeFromWatchlist(int movieId) async {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-              ClipRRect(
-                borderRadius: BorderRadius.circular(12),
-                child: Image.network(
-                  TmdbConfig.imageBaseUrl + posterPath,
-                  width: double.infinity,
-                  fit: BoxFit.cover,
-                  errorBuilder: (_, __, ___) => Container(
-                    height: 350,
-                    color: Colors.white12,
-                    alignment: Alignment.center,
-                    child: const Icon(Icons.movie_outlined, color: Colors.white38, size: 50),
-                  ),
+                /// POSTER WITH FAVORITE HEART
+                Stack(
+                  children: [
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(12),
+                      child: Image.network(
+                        TmdbConfig.imageBaseUrl + posterPath,
+                        width: double.infinity,
+                        fit: BoxFit.cover,
+                        errorBuilder: (_, __, ___) => Container(
+                          height: 350,
+                          color: Colors.white12,
+                          alignment: Alignment.center,
+                          child: const Icon(
+                            Icons.movie_outlined,
+                            color: Colors.white38,
+                            size: 50,
+                          ),
+                        ),
+                      ),
+                    ),
+                    Positioned(
+                      top: 12,
+                      right: 12,
+                      child: FavoriteHeart(
+                        movieId: widget.movieId,
+                        posterPath: posterPath,
+                        width: 28,
+                      ),
+                    ),
+                  ],
                 ),
-              ),
+
                 const SizedBox(height: 16),
 
+                /// TITLE
                 Text(
-                  movie['title'] ?? '',
+                  movieTitle,
                   style: const TextStyle(
                     color: Colors.white,
                     fontSize: 26,
@@ -210,18 +231,22 @@ Future<void> _removeFromWatchlist(int movieId) async {
                 ),
 
                 const SizedBox(height: 12),
+
+                /// WATCHLIST BUTTON
                 _watchlistButton(
-                movieId: widget.movieId,
-                title: movieTitle,
-                posterPath: posterPath,
-              ),
+                  movieId: widget.movieId,
+                  title: movieTitle,
+                  posterPath: posterPath,
+                ),
 
-              const SizedBox(height: 16),
+                const SizedBox(height: 16),
 
+                /// RATINGS ROW
                 _buildRatingsRow(tmdbRating),
 
                 const SizedBox(height: 12),
 
+                /// GENRES
                 Wrap(
                   spacing: 8,
                   children: ((movie['genres'] as List?) ?? [])
@@ -231,6 +256,7 @@ Future<void> _removeFromWatchlist(int movieId) async {
 
                 const SizedBox(height: 16),
 
+                /// OVERVIEW
                 Text(
                   movie['overview'] ?? '',
                   style: const TextStyle(color: Colors.white70),
@@ -238,23 +264,35 @@ Future<void> _removeFromWatchlist(int movieId) async {
 
                 const SizedBox(height: 24),
 
+                /// TRAILER
                 _buildTrailer(),
+
                 const SizedBox(height: 24),
 
+                /// PROVIDERS
                 _buildProviders(),
+
                 const SizedBox(height: 24),
 
+                /// CAST
                 _buildCast(),
+
                 const SizedBox(height: 24),
+
+                /// REVIEWS HEADER
                 _buildReviewsHeader(
                   movieTitle: movieTitle,
                   posterPath: posterPath,
                 ),
+
                 const SizedBox(height: 12),
 
+                /// REVIEWS LIST
                 _buildReviewsList(),
+
                 const SizedBox(height: 24),
 
+                /// SIMILAR MOVIES
                 _buildSimilarMovies(),
               ],
             ),
@@ -263,6 +301,7 @@ Future<void> _removeFromWatchlist(int movieId) async {
       ),
     );
   }
+
 
   Widget _buildRatingsRow(double tmdbRating) {
     return StreamBuilder(
@@ -893,6 +932,58 @@ class _ReviewSheetState extends State<_ReviewSheet> {
           );
         },
       ),
+    );
+  }
+}
+
+
+class FavoriteHeart extends StatelessWidget {
+  final int movieId;
+  final String posterPath;
+  final double width;
+
+  const FavoriteHeart({
+    super.key,
+    required this.movieId,
+    required this.posterPath,
+    this.width = 28,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return const SizedBox();
+
+    final docRef = FirebaseFirestore.instance
+        .collection('users')
+        .doc(user.uid)
+        .collection('favorites')
+        .doc(movieId.toString());
+
+    return StreamBuilder<DocumentSnapshot>(
+      stream: docRef.snapshots(),
+      builder: (context, snapshot) {
+        final isFavorite = snapshot.hasData && snapshot.data!.exists;
+
+        return GestureDetector(
+          onTap: () async {
+            if (isFavorite) {
+              await docRef.delete();
+            } else {
+              await docRef.set({
+                'movieId': movieId,
+                'posterPath': posterPath,
+                'addedAt': FieldValue.serverTimestamp(),
+              });
+            }
+          },
+          child: Icon(
+            Icons.favorite,
+            size: width,
+            color: isFavorite ? Colors.redAccent : Colors.white38,
+          ),
+        );
+      },
     );
   }
 }

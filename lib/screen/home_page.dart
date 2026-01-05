@@ -193,14 +193,37 @@ class _Section extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Expanded(
-                        child: ClipRRect(
-                          borderRadius: BorderRadius.circular(8),
-                          child: Image.network(
-                            TmdbConfig.imageBaseUrl + movie.posterPath,
-                            fit: BoxFit.cover,
-                          ),
+                        child: Stack(
+                          children: [
+                            ClipRRect(
+                              borderRadius: BorderRadius.circular(8),
+                              child: Image.network(
+                                TmdbConfig.imageBaseUrl + movie.posterPath,
+                                fit: BoxFit.cover,
+                                errorBuilder: (_, __, ___) => Container(
+                                  color: Colors.white12,
+                                  alignment: Alignment.center,
+                                  child: const Icon(
+                                    Icons.movie_outlined,
+                                    color: Colors.white38,
+                                    size: 50,
+                                  ),
+                                ),
+                              ),
+                            ),
+                            Positioned(
+                              top: 6,
+                              right: 6,
+                              child: FavoriteHeart(
+                                movieId: movie.id,
+                                posterPath: movie.posterPath,
+                                width: 20, // adjust size of heart
+                              ),
+                            ),
+                          ],
                         ),
                       ),
+
                       const SizedBox(height: 6),
                       Text(
                         movie.title,
