@@ -62,7 +62,6 @@ class ReviewService {
         final data = existingSnap.data();
         final oldRating = (data?['rating'] as num?)?.toInt() ?? 0;
 
-        // Update review
         tx.set(reviewRef, review.toMapForUpdate(), SetOptions(merge: true));
 
         // stats: +(new-old)

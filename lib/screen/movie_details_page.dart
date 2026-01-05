@@ -403,7 +403,9 @@ Future<void> _openReviewSheet({
         movieTitle: movieTitle,
         posterPath: posterPath,
         userId: user.uid,
-        userName: _username ?? 'User',
+        userName: (_username != null && _username!.trim().isNotEmpty)
+        ? _username!.trim()
+        : (FirebaseAuth.instance.currentUser?.email?.split('@').first ?? 'User'),
         reviewService: _reviewService,
       );
 

@@ -118,34 +118,49 @@ class _ProfileAvatar extends StatelessWidget {
       );
     }
 
-    return StreamBuilder<DocumentSnapshot<Map<String, dynamic>>>(
-      stream: FirebaseFirestore.instance
-          .collection('users')
-          .doc(user.uid)
-          .snapshots(),
-      builder: (context, snap) {
-        final data = snap.data?.data();
-        final firestoreUrl = data?['photoUrl'] as String?;
-        final photoUrl = (firestoreUrl != null && firestoreUrl.isNotEmpty)
-            ? firestoreUrl
-            : user.photoURL;
+return StreamBuilder<DocumentSnapshot<Map<String, dynamic>>>(
+  stream: FirebaseFirestore.instance
+      .collection('users')
+      .doc(user.uid)
+      .snapshots(),
+  builder: (context, snap) {
+    if (snap.connectionState == ConnectionState.waiting) {
+      return const _AvatarShell(
+        child: CircularProgressIndicator(color: Colors.white),
+      );
+    }
 
-        if (photoUrl == null || photoUrl.isEmpty) {
-          return const _AvatarShell(
-            child: Icon(Icons.person, color: Colors.white, size: 48),
-          );
-        }
+    if (!snap.hasData || !snap.data!.exists) {
+      return const _AvatarShell(
+        child: Icon(Icons.person, color: Colors.white, size: 48),
+      );
+    }
 
-        return _AvatarShell(
-          imageProvider: NetworkImage(photoUrl),
-        );
-      },
-    );
+    final data = snap.data!.data();
+    final photoUrl = data?['photoUrl'] as String?;
+
+    if (photoUrl == null || photoUrl.isEmpty) {
+      return const _AvatarShell(
+        child: Icon(Icons.person, color: Colors.white, size: 48),
+      );
+    }
+
+return _AvatarShell(
+  key: ValueKey(photoUrl),
+  imageProvider: NetworkImage(photoUrl),
+);
+
+  },
+);
   }
 }
 
 class _AvatarShell extends StatelessWidget {
-  const _AvatarShell({this.imageProvider, this.child});
+  const _AvatarShell({
+    super.key,
+    this.imageProvider,
+    this.child,
+  });
 
   final ImageProvider? imageProvider;
   final Widget? child;

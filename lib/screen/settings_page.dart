@@ -76,14 +76,38 @@ class _SettingsPageState extends State<SettingsPage> {
               ],
             ),
             const SizedBox(height: 32),
-            _UploadPhotoRow(
-              isPicking: _isPicking,
-              imageFile: _profileImage,
-              imageUrl: _photoUrl,
-              onPick: _pickImage,
+            StreamBuilder<DocumentSnapshot<Map<String, dynamic>>>(
+              stream: FirebaseFirestore.instance
+                  .collection('users')
+                  .doc(FirebaseAuth.instance.currentUser!.uid)
+                  .snapshots(),
+              builder: (context, snap) {
+                final photoUrl = snap.data?.data()?['photoUrl'];
+
+                return _UploadPhotoRow(
+                  isPicking: _isPicking,
+                  imageFile: _profileImage,
+                  imageUrl: photoUrl,
+                  onPick: _pickImage,
+                );
+              },
             ),
+
             const SizedBox(height: 24),
-            _InfoPanel(email: _email, username: _username, pink: _pink),
+            StreamBuilder<DocumentSnapshot<Map<String, dynamic>>>(
+              stream: FirebaseFirestore.instance
+                  .collection('users')
+                  .doc(FirebaseAuth.instance.currentUser!.uid)
+                  .snapshots(),
+              builder: (context, snapshot) {
+                final data = snapshot.data?.data();
+                return _InfoPanel(
+                  email: FirebaseAuth.instance.currentUser?.email,
+                  username: data?['username'],
+                  pink: _pink,
+                );
+              },
+            ),
             const Spacer(),
             Center(
               child: IconButton(
@@ -189,13 +213,16 @@ final url = await ref.getDownloadURL();
     await user.reload();
 
     // Save to Firestore
-    await FirebaseFirestore.instance
-        .collection('users')
-        .doc(user.uid)
-        .set({
-      'photoUrl': url,
-      'updatedAt': FieldValue.serverTimestamp(),
-    }, SetOptions(merge: true));
+      await FirebaseFirestore.instance
+          .collection('users')
+          .doc(user.uid)
+          .set({
+        'uid': user.uid,
+        'email': user.email,
+        'photoUrl': url,
+        'updatedAt': FieldValue.serverTimestamp(),
+      }, SetOptions(merge: true));
+
 
     if (!mounted) return;
     setState(() => _photoUrl = url);
@@ -214,6 +241,10 @@ final url = await ref.getDownloadURL();
   } finally {
     if (mounted) setState(() => _isSaving = false);
   }
+  await FirebaseFirestore.instance
+    .collection('users')
+    .doc(user.uid)
+    .get();
 }
 }
 
@@ -238,7 +269,7 @@ class _UploadPhotoRow extends StatelessWidget {
 
     final ImageProvider? imageProvider = imageFile != null
         ? FileImage(imageFile!)
-        : (imageUrl != null ? NetworkImage(imageUrl!) : null);
+        : (imageUrl != null ? NetworkImage('$imageUrl?v=${DateTime.now().millisecondsSinceEpoch}') : null);
 
     return InkWell(
       onTap: isPicking ? null : onPick,
