@@ -1003,3 +1003,53 @@ class _ReviewSheetState extends State<_ReviewSheet> {
     );
   }
 }
+class FavoriteHeart extends StatelessWidget {
+  final int movieId;
+  final String posterPath;
+  final double width;
+
+  const FavoriteHeart({
+    super.key,
+    required this.movieId,
+    required this.posterPath,
+    this.width = 28,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return const SizedBox();
+
+    final docRef = FirebaseFirestore.instance
+        .collection('users')
+        .doc(user.uid)
+        .collection('favorites')
+        .doc(movieId.toString());
+
+    return StreamBuilder<DocumentSnapshot>(
+      stream: docRef.snapshots(),
+      builder: (context, snapshot) {
+        final isFavorite = snapshot.hasData && snapshot.data!.exists;
+
+        return GestureDetector(
+          onTap: () async {
+            if (isFavorite) {
+              await docRef.delete();
+            } else {
+              await docRef.set({
+                'movieId': movieId,
+                'posterPath': posterPath,
+                'addedAt': FieldValue.serverTimestamp(),
+              });
+            }
+          },
+          child: Icon(
+            Icons.favorite,
+            size: width,
+            color: isFavorite ? Colors.redAccent : Colors.white38,
+          ),
+        );
+      },
+    );
+  }
+}
