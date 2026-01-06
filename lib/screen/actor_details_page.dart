@@ -134,16 +134,45 @@ class _ActorDetailsPageState extends State<ActorDetailsPage> {
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  ClipRRect(
-                                    borderRadius: BorderRadius.circular(8),
-                                    child: Image.network(
-                                      TmdbConfig.imageBaseUrl +
-                                          movie['poster_path'],
-                                      height: 180,
-                                      fit: BoxFit.cover,
+                                  /// POSTER + FAVORITE HEART
+                                  Expanded(
+                                    child: Stack(
+                                      children: [
+                                        ClipRRect(
+                                          borderRadius: BorderRadius.circular(8),
+                                          child: Image.network(
+                                            TmdbConfig.imageBaseUrl +
+                                                (movie['poster_path'] ?? ''),
+                                            width: double.infinity,
+                                            height: double.infinity,
+                                            fit: BoxFit.cover,
+                                            errorBuilder: (_, __, ___) => Container(
+                                              color: Colors.white12,
+                                              alignment: Alignment.center,
+                                              child: const Icon(
+                                                Icons.movie_outlined,
+                                                color: Colors.white38,
+                                                size: 50,
+                                              ),
+                                            ),
+                                          ),
+                                        ),
+                                        Positioned(
+                                          top: 6,
+                                          right: 6,
+                                          child: FavoriteHeart(
+                                            movieId: movie['id'],
+                                            posterPath: movie['poster_path'] ?? '',
+                                            width: 20,
+                                          ),
+                                        ),
+                                      ],
                                     ),
                                   ),
+
                                   const SizedBox(height: 6),
+
+                                  /// TITLE
                                   Text(
                                     movie['title'] ?? '',
                                     maxLines: 1,
@@ -152,6 +181,8 @@ class _ActorDetailsPageState extends State<ActorDetailsPage> {
                                       color: Colors.white,
                                     ),
                                   ),
+
+                                  /// CHARACTER
                                   Text(
                                     'as ${movie['character'] ?? ''}',
                                     maxLines: 1,

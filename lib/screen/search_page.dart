@@ -9,49 +9,50 @@ import '../widgets/moviq_scaffold.dart';
 import '../services/tmdb_service.dart';
 import '../models/movie.dart';
 import '../config/tmdb_config.dart';
- 
+
 class SearchPage extends StatefulWidget {
   const SearchPage({super.key});
- 
+
   @override
   State<SearchPage> createState() => _SearchPageState();
 }
- 
+
 class _SearchPageState extends State<SearchPage> {
   final TmdbService _service = TmdbService();
   final TextEditingController _controller = TextEditingController();
- 
+
   List<Movie> _results = [];
   Map<int, String> _genres = {};
   Map<int, bool> _expandedDecades = {};
- 
- 
+
   int? _selectedGenre;
   double? _selectedRating;
   int? _startYear;
   int? _endYear;
- 
+
   bool _filtersOpen = false;
   bool _genreOpen = false;
   bool _decadeOpen = false;
   bool _ratingOpen = false;
- 
+
   bool _loading = false;
   List<String> _history = [];
   bool _showHistory = false;
- 
+
+  static const Color _pink = Color(0xFFE5A3A3);
+
   @override
   void initState() {
     super.initState();
     _loadGenres();
     _loadSearchHistory();
   }
- 
+
   Future<void> _loadGenres() async {
     _genres = await _service.getGenres();
     setState(() {});
   }
- 
+
   Future<void> _loadSearchHistory() async {
     final userId = 'CURRENT_USER_ID'; // replace with real user ID
     final snapshot = await FirebaseFirestore.instance
@@ -61,28 +62,28 @@ class _SearchPageState extends State<SearchPage> {
         .orderBy('timestamp', descending: true)
         .limit(10)
         .get();
- 
+
     setState(() {
       _history = snapshot.docs.map((d) => d.id).toList();
     });
   }
- 
+
   Future<void> _saveSearchTerm(String term) async {
     if (term.trim().isEmpty) return;
- 
+
     final userId = 'CURRENT_USER_ID'; // replace with real user ID
     final docRef = FirebaseFirestore.instance
         .collection('users')
         .doc(userId)
         .collection('search_history');
- 
+
     await docRef.doc(term).set({'timestamp': FieldValue.serverTimestamp()});
     _loadSearchHistory();
   }
- 
+
   Future<void> _search() async {
     setState(() => _loading = true);
- 
+
     if (_controller.text.isNotEmpty) {
       _results = await _service.searchMovies(_controller.text);
       _saveSearchTerm(_controller.text);
@@ -94,10 +95,10 @@ class _SearchPageState extends State<SearchPage> {
         minRating: _selectedRating,
       );
     }
- 
+
     setState(() => _loading = false);
   }
- 
+
   void _clearAll() {
     setState(() {
       _controller.clear();
@@ -109,7 +110,7 @@ class _SearchPageState extends State<SearchPage> {
       _showHistory = false;
     });
   }
- 
+
   @override
   Widget build(BuildContext context) {
     return MoviqScaffold(
@@ -124,21 +125,51 @@ class _SearchPageState extends State<SearchPage> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text(
-                  'Search',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 22,
-                    fontWeight: FontWeight.w700,
+                // Pink oval with magnifying glass
+                Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                  child: Center(
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 24, vertical: 8),
+                      decoration: BoxDecoration(
+                        color: _pink,
+                        borderRadius: BorderRadius.circular(30),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: const [
+                          Icon(Icons.search, color: Colors.white),
+                          SizedBox(width: 8),
+                          Text(
+                            'Search',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 16,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
                   ),
                 ),
+
+                // White line below the oval
+                Container(
+                  height: 2,
+                  margin: const EdgeInsets.symmetric(
+                      horizontal: 24, vertical: 6),
+                  color: Colors.white,
+                ),
+
                 const SizedBox(height: 12),
- 
+
                 // 🔍 SEARCH BAR
                 _buildSearchBar(),
- 
+
                 const SizedBox(height: 12),
- 
+
                 // 🔽 FILTER HEADER RIGHT UNDER SEARCH BAR
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -176,33 +207,33 @@ class _SearchPageState extends State<SearchPage> {
                     )
                   ],
                 ),
- 
-                if (_filtersOpen) _buildFilters(), // ⚡ Filters appear here
- 
+
+                if (_filtersOpen) _buildFilters(),
+
                 const SizedBox(height: 12),
- 
+
                 /// 🎬 RESULTS BELOW FILTERS
                 _buildResults(),
               ],
             ),
           ),
- 
+
           // 🔽 GOOGLE-STYLE HISTORY DROPDOWN
           if (_showHistory && _controller.text.isEmpty)
             Positioned(
-              top: 100, // adjust according to your layout
+              top: 180, // adjust according to layout
               left: 16,
               right: 16,
               child: Material(
-                color: const Color(0xFFB47A78),
+                color: _pink,
                 borderRadius: BorderRadius.circular(12),
                 child: ListView(
                   shrinkWrap: true,
                   children: _history
                       .map(
                         (h) => ListTile(
-                          title: Text(h,
-                              style: const TextStyle(color: Colors.white)),
+                          title:
+                              Text(h, style: const TextStyle(color: Colors.white)),
                           leading:
                               const Icon(Icons.history, color: Colors.white),
                           onTap: () {
@@ -222,7 +253,7 @@ class _SearchPageState extends State<SearchPage> {
       ),
     );
   }
- 
+
   Widget _buildSearchBar() {
     return TextField(
       controller: _controller,
@@ -231,7 +262,7 @@ class _SearchPageState extends State<SearchPage> {
         hintText: 'Search movies...',
         hintStyle: const TextStyle(color: Colors.white54),
         filled: true,
-        fillColor: const Color(0xFFB47A78),
+        fillColor: _pink,
         prefixIcon: const Icon(Icons.search, color: Colors.white),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(20),
@@ -249,7 +280,7 @@ class _SearchPageState extends State<SearchPage> {
       },
     );
   }
- 
+
   Widget _buildFilters() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -278,7 +309,7 @@ class _SearchPageState extends State<SearchPage> {
       ],
     );
   }
- 
+
   Widget _buildSection(
       {required String title,
       required bool isOpen,
@@ -308,82 +339,75 @@ class _SearchPageState extends State<SearchPage> {
       ],
     );
   }
- 
-  // 📅 DECADES
+
+  // ================= DECADES =================
   Widget _buildDecades() {
-  final decades = [
-    {'label': '2020s', 'start': 2020, 'end': 2029},
-    {'label': '2010s', 'start': 2010, 'end': 2019},
-    {'label': '2000s', 'start': 2000, 'end': 2009},
-    {'label': '1990s', 'start': 1990, 'end': 1999},
-    {'label': '1980s', 'start': 1980, 'end': 1989},
-    {'label': '1970s', 'start': 1970, 'end': 1979},
-    {'label': '1960s', 'start': 1960, 'end': 1969},
-    {'label': '1950s', 'start': 1950, 'end': 1959},
-  ];
- 
-  return Column(
-    children: decades.map((d) {
-      final start = d['start'] as int;
-      final end = d['end'] as int;
-      final label = d['label'] as String;
-      final isExpanded = _expandedDecades[start] ?? false;
- 
-      return Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Decade row with arrow
-          ListTile(
-            title: Text(label, style: const TextStyle(color: Colors.white)),
-            trailing: Icon(
-              isExpanded
-                  ? Icons.keyboard_arrow_up
-                  : Icons.keyboard_arrow_down,
-              color: Colors.white,
-            ),
-            onTap: () {
-              setState(() {
-                // toggle expanded state
-                _expandedDecades[start] = !isExpanded;
-                // select entire decade
-                _startYear = start;
-                _endYear = end;
-              });
-              _search();
-            },
-          ),
- 
-          // Expanded exact years
-          if (isExpanded)
-            Padding(
-              padding: const EdgeInsets.only(left: 16),
-              child: Column(
-                children: List.generate(end - start + 1, (index) {
-                  final year = start + index;
-                  return RadioListTile(
-                    value: year,
-                    groupValue: _startYear == _endYear ? _startYear : null,
-                    onChanged: (_) {
-                      setState(() {
-                        _startYear = year;
-                        _endYear = year;
-                      });
-                      _search();
-                    },
-                    title: Text(year.toString(),
-                        style: const TextStyle(color: Colors.white70)),
-                    activeColor: Colors.pinkAccent,
-                  );
-                }),
+    final decades = [
+      {'label': '2020s', 'start': 2020, 'end': 2029},
+      {'label': '2010s', 'start': 2010, 'end': 2019},
+      {'label': '2000s', 'start': 2000, 'end': 2009},
+      {'label': '1990s', 'start': 1990, 'end': 1999},
+      {'label': '1980s', 'start': 1980, 'end': 1989},
+      {'label': '1970s', 'start': 1970, 'end': 1979},
+      {'label': '1960s', 'start': 1960, 'end': 1969},
+      {'label': '1950s', 'start': 1950, 'end': 1959},
+    ];
+
+    return Column(
+      children: decades.map((d) {
+        final start = d['start'] as int;
+        final end = d['end'] as int;
+        final label = d['label'] as String;
+        final isExpanded = _expandedDecades[start] ?? false;
+
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            ListTile(
+              title: Text(label, style: const TextStyle(color: Colors.white)),
+              trailing: Icon(
+                isExpanded ? Icons.keyboard_arrow_up : Icons.keyboard_arrow_down,
+                color: Colors.white,
               ),
+              onTap: () {
+                setState(() {
+                  _expandedDecades[start] = !isExpanded;
+                  _startYear = start;
+                  _endYear = end;
+                });
+                _search();
+              },
             ),
-        ],
-      );
-    }).toList(),
-  );
-}
- 
-  // 🎭 GENRES
+            if (isExpanded)
+              Padding(
+                padding: const EdgeInsets.only(left: 16),
+                child: Column(
+                  children: List.generate(end - start + 1, (index) {
+                    final year = start + index;
+                    return RadioListTile(
+                      value: year,
+                      groupValue: _startYear == _endYear ? _startYear : null,
+                      onChanged: (_) {
+                        setState(() {
+                          _startYear = year;
+                          _endYear = year;
+                        });
+                        _search();
+                      },
+                      title: Text(year.toString(),
+                          style: const TextStyle(color: Colors.white70)),
+                      activeColor: Colors.pinkAccent,
+                    );
+                  }),
+                ),
+              ),
+          ],
+        );
+      }).toList(),
+    );
+  }
+
+  // ================= GENRES =================
   Widget _buildGenres() {
     if (_genres.isEmpty) {
       return const Text(
@@ -391,7 +415,7 @@ class _SearchPageState extends State<SearchPage> {
         style: TextStyle(color: Colors.white70),
       );
     }
- 
+
     return Column(
       children: _genres.entries.map((g) {
         return RadioListTile(
@@ -407,8 +431,8 @@ class _SearchPageState extends State<SearchPage> {
       }).toList(),
     );
   }
- 
-  // ⭐ RATINGS
+
+  // ================= RATINGS =================
   Widget _buildRatings() {
     return Column(
       children: [
@@ -417,7 +441,7 @@ class _SearchPageState extends State<SearchPage> {
       ],
     );
   }
- 
+
   Widget _ratingOption(String label, double value) {
     return RadioListTile(
       value: value,
@@ -430,7 +454,7 @@ class _SearchPageState extends State<SearchPage> {
       activeColor: Colors.pinkAccent,
     );
   }
- 
+
   // ================= RESULTS =================
   Widget _buildResults() {
     if (_loading) {
@@ -439,11 +463,11 @@ class _SearchPageState extends State<SearchPage> {
         child: Center(child: CircularProgressIndicator()),
       );
     }
- 
+
     if (_results.isEmpty) {
       return const SizedBox();
     }
- 
+
     return GridView.builder(
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
@@ -457,7 +481,7 @@ class _SearchPageState extends State<SearchPage> {
       itemBuilder: (context, index) {
         final movie = _results[index];
         if (movie.posterPath.isEmpty) return const SizedBox();
- 
+
         return GestureDetector(
           onTap: () {
             Navigator.push(
@@ -478,7 +502,7 @@ class _SearchPageState extends State<SearchPage> {
       },
     );
   }
- 
+
   // ================= NAV =================
   void _handleBottomNav(BuildContext context, MoviqBottomTab tab) {
     switch (tab) {
