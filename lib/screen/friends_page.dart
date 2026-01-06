@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:moviq/screen/watchlist_page.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import '../widgets/moviq_scaffold.dart';
 import '../config/tmdb_config.dart';
 import 'home_page.dart';
@@ -8,17 +8,19 @@ import 'movie_details_page.dart';
 import 'search_page.dart';
 import 'chat_page.dart';
 import 'favorites_page.dart';
-import 'profile_page.dart'; 
-import 'friends_page.dart';
+import 'profile_page.dart';
+import 'reviews_page.dart';
+import 'watchlist_page.dart';
 import '../widgets/nav_helpers.dart';
-class ReviewsPage extends StatefulWidget {
-  const ReviewsPage({super.key});
+
+class FriendsPage extends StatefulWidget {
+  const FriendsPage({super.key});
 
   @override
-  State<ReviewsPage> createState() => _ReviewsPageState();
+  State<FriendsPage> createState() => _FriendsPageState();
 }
 
-class _ReviewsPageState extends State<ReviewsPage> {
+class _FriendsPageState extends State<FriendsPage> {
   int? _selectedRating10;
 
   void _handleBottomNav(BuildContext context, MoviqBottomTab tab) {
@@ -47,8 +49,25 @@ class _ReviewsPageState extends State<ReviewsPage> {
 
   @override
   Widget build(BuildContext context) {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) {
+      return const Scaffold(
+        backgroundColor: Colors.black,
+        body: Center(
+          child: Text('Please sign in', style: TextStyle(color: Colors.white70)),
+        ),
+      );
+    }
+
+    final friendsStream = FirebaseFirestore.instance
+        .collection('users')
+        .doc(user.uid)
+        .collection('friends')
+        .snapshots()
+        .handleError((_) {});
+
     return MoviqScaffold(
-      currentTopTab: MoviqTopTab.reviews,
+      currentTopTab: MoviqTopTab.friends,
       currentBottomTab: MoviqBottomTab.dashboard,
       showTopNav: true,
       onTopTabSelected: (tab) {
@@ -58,10 +77,10 @@ class _ReviewsPageState extends State<ReviewsPage> {
             MaterialPageRoute(builder: (_) => const HomePage()),
           );
         }
-        if (tab == MoviqTopTab.friends) {
+        if (tab == MoviqTopTab.reviews) {
           Navigator.pushReplacement(
             context,
-            MaterialPageRoute(builder: (_) => const FriendsPage()),
+            MaterialPageRoute(builder: (_) => const ReviewsPage()),
           );
         }
         if (tab == MoviqTopTab.list) {
@@ -71,130 +90,138 @@ class _ReviewsPageState extends State<ReviewsPage> {
           );
         }
       },
-     onBottomTabSelected: (tab) => _handleBottomNav(context, tab),
+      onBottomTabSelected: (tab) => _handleBottomNav(context, tab),
       body: Column(
         children: [
-          _buildTrendingHeader(context),
+          _buildHeader(context),
           Expanded(
-            child: StreamBuilder<QuerySnapshot>(
-              stream: FirebaseFirestore.instance
-                  .collectionGroup('reviews')
-                  .orderBy('createdAt', descending: true)
-                  .snapshots(),
-              builder: (context, snapshot) {
-                if (snapshot.connectionState == ConnectionState.waiting) {
+            child: StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
+              stream: friendsStream,
+              builder: (context, friendsSnap) {
+                if (friendsSnap.connectionState == ConnectionState.waiting) {
                   return const Center(child: CircularProgressIndicator());
                 }
-
-                if (snapshot.hasError) {
-                  return Center(
-                    child: Text(
-                      snapshot.error.toString(),
-                      style: const TextStyle(color: Colors.red),
-                    ),
-                  );
-                }
-
-                final docs = snapshot.data?.docs ?? [];
-                if (docs.isEmpty) {
+                final friendIds = friendsSnap.data?.docs.map((d) => d.id).toSet() ?? {};
+                if (friendIds.isEmpty) {
                   return const Center(
                     child: Text(
-                      'No reviews yet',
+                      'No friend activity yet',
                       style: TextStyle(color: Colors.white70),
                     ),
                   );
                 }
-                final filteredDocs = _selectedRating10 == null
-                    ? docs
-                    : docs.where((d) {
-                        final data = d.data() as Map<String, dynamic>;
-                        final rating = (data['rating'] as num?)?.toInt() ?? 0;
-                        return rating == _selectedRating10;
-                      }).toList();
 
-                return ListView.builder(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 16,
-                    vertical: 14,
-                  ),
-                  itemCount: filteredDocs.length,
-                  itemBuilder: (context, index) {
-                    final data =
-                        filteredDocs[index].data() as Map<String, dynamic>;
-
-                    final String? userId = data['userId'] as String?;
-                    final String reviewText = (data['review'] as String?) ?? '';
-                    final int rating10 = (data['rating'] as num?)?.toInt() ?? 0;
-                    final int starRating = ((rating10 / 2).ceil()).clamp(0, 5);
-                    final String movieTitle =
-                        (data['movieTitle'] as String?) ?? 'Unknown movie';
-                    final int? movieId = (data['movieId'] as num?)?.toInt();
-                    final String posterPath =
-                        (data['posterPath'] as String?) ?? '';
-
-                    // SAFETY FALLBACK (should almost never happen)
-                    if (userId == null || userId.isEmpty) {
-                      return _ReviewTile(
-                        userName: 'Unknown',
-                        userPhoto: null,
-                        movieTitle: movieTitle,
-                        reviewText: reviewText,
-                        rating10: rating10,
-                        starRating: starRating,
-                        posterPath: posterPath,
-                        onTap: movieId == null
-                            ? null
-                            : () {
-                                Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder: (_) =>
-                                        MovieDetailsPage(movieId: movieId),
-                                  ),
-                                );
-                              },
+                return StreamBuilder<QuerySnapshot>(
+                  stream: FirebaseFirestore.instance
+                      .collectionGroup('reviews')
+                      .orderBy('createdAt', descending: true)
+                      .snapshots(),
+                  builder: (context, snapshot) {
+                    if (snapshot.connectionState == ConnectionState.waiting) {
+                      return const Center(child: CircularProgressIndicator());
+                    }
+                    if (snapshot.hasError) {
+                      return Center(
+                        child: Text(
+                          snapshot.error.toString(),
+                          style: const TextStyle(color: Colors.red),
+                        ),
                       );
                     }
-                    return StreamBuilder<
-                      DocumentSnapshot<Map<String, dynamic>>
-                    >(
-                      stream: FirebaseFirestore.instance
-                          .collection('users')
-                          .doc(userId)
-                          .snapshots(),
-                      builder: (context, userSnap) {
-                        final userData = userSnap.data?.data();
 
-                      final liveUserName =
-                          (userData?['username'] as String?) ??
-                          (data['userName'] as String?) ??
-                          'User';
+                    final docs = snapshot.data?.docs ?? [];
+                    final friendDocs = docs.where((doc) {
+                      final data = doc.data() as Map<String, dynamic>;
+                      final userId = data['userId'] as String?;
+                      return userId != null && friendIds.contains(userId);
+                    }).toList();
 
-                        final liveUserPhoto =
-                          (userData?['photoUrl'] as String?) ??
-                          (data['userPhoto'] as String?) ??
-                          '';
-                        return _ReviewTile(
-                          userName: liveUserName,
-                          userPhoto: liveUserPhoto.isEmpty
-                              ? null
-                              : liveUserPhoto,
-                          movieTitle: movieTitle,
-                          reviewText: reviewText,
-                          rating10: rating10,
-                          starRating: starRating,
-                          posterPath: posterPath,
-                          onTap: movieId == null
-                              ? null
-                              : () {
-                                  Navigator.push(
-                                    context,
-                                    MaterialPageRoute(
-                                      builder: (_) =>
-                                          MovieDetailsPage(movieId: movieId),
-                                    ),
-                                  );
-                                },
+                    final filteredDocs = _selectedRating10 == null
+                        ? friendDocs
+                        : friendDocs.where((d) {
+                            final data = d.data() as Map<String, dynamic>;
+                            final rating = (data['rating'] as num?)?.toInt() ?? 0;
+                            return rating == _selectedRating10;
+                          }).toList();
+
+                    if (filteredDocs.isEmpty) {
+                      return const Center(
+                        child: Text(
+                          'No friend reviews yet',
+                          style: TextStyle(color: Colors.white70),
+                        ),
+                      );
+                    }
+
+                    return ListView.builder(
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                      itemCount: filteredDocs.length,
+                      itemBuilder: (context, index) {
+                        final data = filteredDocs[index].data() as Map<String, dynamic>;
+
+                        final String? userId = data['userId'] as String?;
+                        final String reviewText = (data['review'] as String?) ?? '';
+                        final int rating10 = (data['rating'] as num?)?.toInt() ?? 0;
+                        final int starRating = ((rating10 / 2).ceil()).clamp(0, 5);
+                        final String movieTitle =
+                            (data['movieTitle'] as String?) ?? 'Unknown movie';
+                        final int? movieId = (data['movieId'] as num?)?.toInt();
+                        final String posterPath = (data['posterPath'] as String?) ?? '';
+
+                        if (userId == null || userId.isEmpty) {
+                          return _ReviewTile(
+                            userName: 'Unknown',
+                            userPhoto: null,
+                            movieTitle: movieTitle,
+                            reviewText: reviewText,
+                            rating10: rating10,
+                            starRating: starRating,
+                            posterPath: posterPath,
+                            onTap: movieId == null
+                                ? null
+                                : () {
+                                    Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                        builder: (_) => MovieDetailsPage(movieId: movieId),
+                                      ),
+                                    );
+                                  },
+                          );
+                        }
+
+                        return StreamBuilder<DocumentSnapshot<Map<String, dynamic>>>(
+                          stream: FirebaseFirestore.instance
+                              .collection('users')
+                              .doc(userId)
+                              .snapshots(),
+                          builder: (context, userSnap) {
+                            final userData = userSnap.data?.data();
+                            final liveUserName =
+                                (userData?['username'] as String?) ?? 'Unknown';
+                            final liveUserPhoto =
+                                (userData?['photoUrl'] as String?) ?? '';
+
+                            return _ReviewTile(
+                              userName: liveUserName,
+                              userPhoto: liveUserPhoto.isEmpty ? null : liveUserPhoto,
+                              movieTitle: movieTitle,
+                              reviewText: reviewText,
+                              rating10: rating10,
+                              starRating: starRating,
+                              posterPath: posterPath,
+                              onTap: movieId == null
+                                  ? null
+                                  : () {
+                                      Navigator.push(
+                                        context,
+                                        MaterialPageRoute(
+                                          builder: (_) => MovieDetailsPage(movieId: movieId),
+                                        ),
+                                      );
+                                    },
+                            );
+                          },
                         );
                       },
                     );
@@ -208,7 +235,7 @@ class _ReviewsPageState extends State<ReviewsPage> {
     );
   }
 
-  Widget _buildTrendingHeader(BuildContext context) {
+  Widget _buildHeader(BuildContext context) {
     return Container(
       padding: const EdgeInsets.fromLTRB(16, 14, 16, 10),
       decoration: const BoxDecoration(
@@ -221,9 +248,8 @@ class _ReviewsPageState extends State<ReviewsPage> {
       child: Row(
         children: [
           const Expanded(child: SizedBox()),
-
           const Text(
-            'Trending',
+            'Recent reviews of friends',
             style: TextStyle(
               color: Colors.white,
               fontSize: 18,
@@ -231,7 +257,6 @@ class _ReviewsPageState extends State<ReviewsPage> {
               letterSpacing: 0.5,
             ),
           ),
-
           Expanded(
             child: Align(
               alignment: Alignment.centerRight,
@@ -282,7 +307,6 @@ class _ReviewsPageState extends State<ReviewsPage> {
                   ),
                 ),
                 const SizedBox(height: 12),
-
                 Wrap(
                   spacing: 10,
                   runSpacing: 10,
@@ -302,7 +326,6 @@ class _ReviewsPageState extends State<ReviewsPage> {
                     }),
                   ],
                 ),
-
                 const SizedBox(height: 12),
                 const Text(
                   'Tip: Ratings are stored as /10, but shown as 5 stars.',
@@ -363,7 +386,6 @@ class _ReviewTile extends StatelessWidget {
                         )
                       : null,
                 ),
-
                 const SizedBox(width: 6),
                 Text(
                   userName,
@@ -371,7 +393,6 @@ class _ReviewTile extends StatelessWidget {
                 ),
               ],
             ),
-
             const SizedBox(height: 10),
             Row(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -402,9 +423,7 @@ class _ReviewTile extends StatelessWidget {
                           ),
                         ],
                       ),
-
                       const SizedBox(height: 8),
-
                       Text(
                         reviewText.trim().isEmpty ? 'Rating only' : reviewText,
                         style: const TextStyle(
@@ -418,9 +437,7 @@ class _ReviewTile extends StatelessWidget {
                 ),
               ],
             ),
-
             const SizedBox(height: 10),
-
             Text(
               movieTitle,
               style: const TextStyle(
@@ -429,7 +446,6 @@ class _ReviewTile extends StatelessWidget {
                 fontWeight: FontWeight.w600,
               ),
             ),
-
             const SizedBox(height: 14),
             const Divider(color: Colors.white12, height: 1),
           ],
