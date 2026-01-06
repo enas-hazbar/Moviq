@@ -39,6 +39,18 @@ class _MovieDetailsPageState extends State<MovieDetailsPage> {
       .snapshots()
       .map((doc) => doc.exists);
 }
+Stream<bool> _isWatched(int movieId) {
+  final user = FirebaseAuth.instance.currentUser;
+  if (user == null) return const Stream.empty();
+
+  return FirebaseFirestore.instance
+      .collection('users')
+      .doc(user.uid)
+      .collection('watched')
+      .doc(movieId.toString())
+      .snapshots()
+      .map((doc) => doc.exists);
+}
 
 Future<void> _loadUsername() async {
   final user = FirebaseAuth.instance.currentUser;
@@ -65,7 +77,7 @@ Future<void> _loadUsername() async {
     _providers = _tmdbService.getWatchProviders(widget.movieId);
     _similar = _tmdbService.getSimilarMovies(widget.movieId);
   }
-Widget _watchlistButton({
+  Widget _watchlistButton({
   required int movieId,
   required String title,
   required String posterPath,
@@ -75,56 +87,103 @@ Widget _watchlistButton({
     builder: (context, snapshot) {
       final inWatchlist = snapshot.data ?? false;
 
-      return SizedBox(
-        width: double.infinity,
-        child: ElevatedButton.icon(
-          style: ElevatedButton.styleFrom(
-            backgroundColor:
-                inWatchlist ? Colors.transparent : const Color(0xFFE5A3A3),
-            foregroundColor: Colors.white,
-            side: inWatchlist
-                ? const BorderSide(color: Color(0xFFE5A3A3))
-                : BorderSide.none,
-            padding: const EdgeInsets.symmetric(vertical: 14),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(10),
-            ),
+     return ElevatedButton.icon(
+  style: ElevatedButton.styleFrom(
+    backgroundColor:
+        inWatchlist ? Colors.white12 : const Color(0xFFE5A3A3),
+    foregroundColor: Colors.white,
+    padding: const EdgeInsets.symmetric(vertical: 16),
+    shape: RoundedRectangleBorder(
+      borderRadius: BorderRadius.circular(12),
+    ),
+  ),
+  icon: Icon(
+    inWatchlist ? Icons.check : Icons.add,
+    color: Colors.white,
+  ),
+  label: Text(
+    inWatchlist ? 'In Watchlist' : 'Add to Watchlist',
+  ),
+  onPressed: () async {
+    if (inWatchlist) {
+      await _removeFromWatchlist(movieId);
+    } else {
+      await _addToWatchlist(
+        movieId: movieId,
+        title: title,
+        posterPath: posterPath,
+      );
+    }
+  },
+);
+    },
+  );
+}
+Widget _watchedButton({
+  required int movieId,
+  required String title,
+  required String posterPath,
+}) {
+  return StreamBuilder<bool>(
+    stream: _isWatched(movieId),
+    builder: (context, snapshot) {
+      final isWatched = snapshot.data ?? false;
+
+      return ElevatedButton.icon(
+        style: ElevatedButton.styleFrom(
+          backgroundColor:
+              isWatched ? Colors.greenAccent.withOpacity(0.9) : Colors.white12,
+          foregroundColor: Colors.black,
+          padding: const EdgeInsets.symmetric(vertical: 16),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
           ),
-          icon: Icon(
-            inWatchlist ? Icons.check : Icons.add,
-            color: const Color(0xFFE5A3A3),
-          ),
-          label: Text(
-            inWatchlist ? 'In Watchlist' : 'Add to Watchlist',
-            style: const TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.w600,
-            ),
-          ),
-          onPressed: () async {
-            if (inWatchlist) {
-              await _removeFromWatchlist(movieId);
-              if (!mounted) return;
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Removed from watchlist')),
-              );
-            } else {
-              await _addToWatchlist(
-                movieId: movieId,
-                title: title,
-                posterPath: posterPath,
-              );
-              if (!mounted) return;
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Added to watchlist')),
-              );
-            }
-          },
         ),
+        icon: Icon(
+          isWatched ? Icons.check_circle : Icons.visibility,
+          color: isWatched ? Colors.black : Colors.white,
+        ),
+        label: Text(
+          isWatched ? 'Watched' : 'Mark Watched',
+          style: TextStyle(
+            fontWeight: FontWeight.w600,
+            color: isWatched ? Colors.black : Colors.white,
+          ),
+        ),
+        onPressed: () async {
+          final user = FirebaseAuth.instance.currentUser;
+          if (user == null) return;
+
+          if (isWatched) {
+            await FirebaseFirestore.instance
+                .collection('users')
+                .doc(user.uid)
+                .collection('watched')
+                .doc(movieId.toString())
+                .delete();
+
+            if (!mounted) return;
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('Removed from watched')),
+            );
+          } else {
+            await _markAsWatched(
+              movieId: movieId,
+              title: title,
+              posterPath: posterPath,
+            );
+
+            if (!mounted) return;
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('Marked as watched')),
+            );
+          }
+        },
       );
     },
   );
 }
+
 
 Future<void> _addToWatchlist({
   required int movieId,
@@ -157,6 +216,29 @@ Future<void> _removeFromWatchlist(int movieId) async {
       .collection('watchlist')
       .doc(movieId.toString())
       .delete();
+}
+Future<void> _markAsWatched({
+  required int movieId,
+  required String title,
+  required String posterPath,
+}) 
+async {
+  final user = FirebaseAuth.instance.currentUser;
+  if (user == null) return;
+
+  final userRef =
+      FirebaseFirestore.instance.collection('users').doc(user.uid);
+
+  // 1️⃣ Add to watched
+  await userRef.collection('watched').doc(movieId.toString()).set({
+    'movieId': movieId,
+    'title': title,
+    'posterPath': posterPath,
+    'watchedAt': FieldValue.serverTimestamp(),
+  });
+
+  // 2️⃣ Remove from watchlist (if exists)
+  await userRef.collection('watchlist').doc(movieId.toString()).delete();
 }
 
   @override
@@ -208,17 +290,40 @@ Future<void> _removeFromWatchlist(int movieId) async {
                     fontWeight: FontWeight.bold,
                   ),
                 ),
+const SizedBox(height: 12),
 
-                const SizedBox(height: 12),
-                _watchlistButton(
-                movieId: widget.movieId,
-                title: movieTitle,
-                posterPath: posterPath,
-              ),
+Container(
+  padding: const EdgeInsets.all(12),
+  decoration: BoxDecoration(
+    color: Colors.white.withOpacity(0.04),
+    borderRadius: BorderRadius.circular(14),
+  ),
+  child: Row(
+    children: [
+      Expanded(
+        child: _watchlistButton(
+          movieId: widget.movieId,
+          title: movieTitle,
+          posterPath: posterPath,
+        ),
+      ),
+      const SizedBox(width: 12),
+      Expanded(
+        child: _watchedButton(
+          movieId: widget.movieId,
+          title: movieTitle,
+          posterPath: posterPath,
+        ),
+      ),
+    ],
+  ),
+),
 
-              const SizedBox(height: 16),
+const SizedBox(height: 16),
 
-                _buildRatingsRow(tmdbRating),
+            const SizedBox(height: 16),
+
+            _buildRatingsRow(tmdbRating),
 
                 const SizedBox(height: 12),
 
