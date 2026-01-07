@@ -198,9 +198,13 @@ class _FriendsPageState extends State<FriendsPage> {
                           builder: (context, userSnap) {
                             final userData = userSnap.data?.data();
                             final liveUserName =
-                                (userData?['username'] as String?) ?? 'Unknown';
+                                (userData?['username'] as String?) ??
+                                (data['userName'] as String?) ??
+                                'User';
                             final liveUserPhoto =
-                                (userData?['photoUrl'] as String?) ?? '';
+                                (userData?['photoUrl'] as String?) ??
+                                (data['userPhoto'] as String?) ??
+                                '';
 
                             return _ReviewTile(
                               userName: liveUserName,
