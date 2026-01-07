@@ -12,6 +12,8 @@ import 'friend_search_page.dart';
 import 'friend_profile_page.dart';
 import '../widgets/nav_helpers.dart';
 import '../config/tmdb_config.dart';
+import 'PickFavoriteForSlotPage.dart';
+
 
 class ProfilePage extends StatelessWidget {
   const ProfilePage({super.key});
@@ -56,8 +58,101 @@ class ProfilePage extends StatelessWidget {
             // My Faves
             const _SectionHeader(title: 'My Faves:'),
             const SizedBox(height: 16),
-            const SizedBox(height: 140),
-            const SizedBox(height: 28),
+
+            StreamBuilder<QuerySnapshot>(
+              stream: FirebaseFirestore.instance
+                  .collection('users')
+                  .doc(FirebaseAuth.instance.currentUser!.uid)
+                  .collection('profile_faves')
+                  .snapshots(),
+              builder: (context, snapshot) {
+                if (!snapshot.hasData) {
+                  // Placeholder while loading
+                  return Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: const [
+                      _AddPosterPlaceholder(slotId: 'slot_1'),
+                      _AddPosterPlaceholder(slotId: 'slot_2'),
+                      _AddPosterPlaceholder(slotId: 'slot_3'),
+                    ],
+                  );
+                }
+
+                final docs = snapshot.data!.docs;
+
+                return Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: List.generate(3, (index) {
+                    final slotId = 'slot_${index + 1}';
+
+                    // Null-safe document lookup
+                    final doc = docs.where((d) => d.id == slotId).isNotEmpty
+                        ? docs.firstWhere((d) => d.id == slotId)
+                        : null;
+
+                    final posterPath = doc?.get('posterPath') as String? ?? '';
+
+                    return GestureDetector(
+                      onTap: () async {
+                        final selectedMovie = await Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => PickFavoriteForSlotPage(slotId: slotId),
+                          ),
+                        );
+
+                        if (selectedMovie != null) {
+                          final user = FirebaseAuth.instance.currentUser;
+                          if (user != null) {
+                            await FirebaseFirestore.instance
+                                .collection('users')
+                                .doc(user.uid)
+                                .collection('profile_faves')
+                                .doc(slotId)
+                                .set({
+                              'movieId': selectedMovie['movieId'],
+                              'posterPath': selectedMovie['posterPath'],
+                              'addedAt': FieldValue.serverTimestamp(),
+                            });
+
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text('Saved profile fave'),
+                                backgroundColor: ProfilePage._pink,
+                              ),
+                            );
+                          }
+                        }
+                      },
+                      child: Container(
+                        width: 100,
+                        height: 150,
+                        decoration: BoxDecoration(
+                          color: Colors.white10,
+                          borderRadius: BorderRadius.circular(10),
+                          border: Border.all(color: Colors.white24),
+                          image: posterPath.isNotEmpty
+                              ? DecorationImage(
+                                  image: NetworkImage(
+                                    '${TmdbConfig.imageBaseUrl}$posterPath',
+                                  ),
+                                  fit: BoxFit.cover,
+                                )
+                              : null,
+                        ),
+                        child: posterPath.isEmpty
+                            ? const Center(
+                                child: Icon(Icons.add, color: Colors.white70, size: 40),
+                              )
+                            : null,
+                      ),
+                    );
+                  }),
+                );
+              },
+            ),
+
+
 
             // Recent Activity
             const _SectionHeader(title: 'Recent Activity:'),
@@ -725,6 +820,40 @@ class _PosterPlaceholder extends StatelessWidget {
     );
   }
 }
+
+class _AddPosterPlaceholder extends StatelessWidget {
+  final String slotId;
+
+  const _AddPosterPlaceholder({required this.slotId});
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => PickFavoriteForSlotPage(slotId: slotId),
+          ),
+        );
+      },
+      child: Container(
+        width: 100,
+        height: 150,
+        decoration: BoxDecoration(
+          color: Colors.white10,
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(color: Colors.white24),
+        ),
+        child: const Center(
+          child: Icon(Icons.add, color: Colors.white70, size: 40),
+        ),
+      ),
+    );
+  }
+}
+
+
 
 class _PosterRow extends StatelessWidget {
   const _PosterRow({required this.placeholders});
