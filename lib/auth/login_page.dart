@@ -38,20 +38,6 @@ class _LoginPageState extends State<LoginPage> {
     }
   }
 
-  Future<void> _signInWithApple() async {
-    try {
-      final user = await _authService.signInWithApple();
-      if (user != null) _navigateToHome();
-    } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text("Failed to sign in with Apple: $e"),
-          backgroundColor: Colors.red,
-        ),
-      );
-    }
-  }
-
   Future<void> _signInWithEmail() async {
     try {
       final user = await _authService.signInWithEmail(
@@ -146,8 +132,6 @@ Widget build(BuildContext context) {
             const SizedBox(height: 12),
 
             authButton("Sign in with Google", _signInWithGoogle),
-            const SizedBox(height: 8),
-            authButton("Sign in with Apple", _signInWithApple),
 
             const SizedBox(height: 16),
 
