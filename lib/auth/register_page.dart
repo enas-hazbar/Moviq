@@ -18,13 +18,51 @@ class _RegisterPageState extends State<RegisterPage> {
   bool _termsAccepted = false;
   bool _termsExpanded = false;
 
+  String? _passwordValidationError(String value) {
+    if (value.length < 8) {
+      return 'Password must be at least 8 characters.';
+    }
+    if (!RegExp(r'[A-Z]').hasMatch(value)) {
+      return 'Password must include at least one capital letter.';
+    }
+    if (!RegExp(r'[a-z]').hasMatch(value)) {
+      return 'Password must include at least one small letter.';
+    }
+    if (!RegExp(r'\d').hasMatch(value)) {
+      return 'Password must include at least one number.';
+    }
+    if (!RegExp("[!@#\u0024%\\^&*(),.?\":{}|<>_\\-\\\\/\\[\\]`~+=]")
+        .hasMatch(value)) {
+      return 'Password must include at least one special character.';
+    }
+    return null;
+  }
+
   Future<void> _register() async {
     if (!_termsAccepted) return;
 
     try {
+      final password = _password.text.trim();
+      final confirm = _confirm.text.trim();
+      final error = _passwordValidationError(password);
+      if (error != null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(error), backgroundColor: Colors.red),
+        );
+        return;
+      }
+      if (password != confirm) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text("Passwords don't match."),
+            backgroundColor: Colors.red,
+          ),
+        );
+        return;
+      }
       final user = await _authService.signUpWithEmail(
         email: _email.text.trim(),
-        password: _password.text.trim(),
+        password: password,
         username: _username.text.trim(),
       );
       if (user != null) Navigator.pop(context);
