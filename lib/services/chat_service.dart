@@ -221,5 +221,35 @@ Future<void> sendVoiceMessage(String otherUid, File file) async {
     'seenBy': [uid],
   });
 }
+Future<void> sendList({
+  required String otherUid,
+  required String listType, // 'custom' | 'watchlist' | 'watched'
+  String? listId,           // only for custom
+  required String listName,
+}) async {
+  await ensureChatExists(otherUid);
+
+  await _messagesRef(otherUid).add({
+    'type': 'list',
+    'senderId': uid,
+
+    // 🔑 list reference
+    'listType': listType,
+    'listId': listId,
+    'listOwnerId': uid,
+    'listName': listName,
+
+    'createdAt': FieldValue.serverTimestamp(),
+    'seenBy': [uid],
+  });
+
+  await _chatRef(otherUid).set({
+    'lastMessage': '📋 Shared: $listName',
+    'lastMessageType': 'list',
+    'lastMessageAt': FieldValue.serverTimestamp(),
+    'updatedAt': FieldValue.serverTimestamp(),
+    'unread.$otherUid': FieldValue.increment(1),
+  }, SetOptions(merge: true));
+}
 
 }

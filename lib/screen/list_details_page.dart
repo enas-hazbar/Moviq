@@ -4,6 +4,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import '../config/tmdb_config.dart';
 import 'movie_details_page.dart';
 import 'add_movie_to_list_page.dart';
+import 'share_list_page.dart';
 
 class ListDetailsPage extends StatelessWidget {
   final String listId;
@@ -27,6 +28,23 @@ class ListDetailsPage extends StatelessWidget {
       appBar: AppBar(
         backgroundColor: Colors.black,
         title: Text(listName),
+          actions: [
+    IconButton(
+      icon: const Icon(Icons.share),
+      onPressed: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => ShareListPage(
+              listType: 'custom',
+              listId: listId,
+              listName: listName,
+            ),
+          ),
+        );
+      },
+    ),
+  ],
       ),
       body: Stack(
         children: [

@@ -323,7 +323,7 @@ async {
                   ),
                 ),
 const SizedBox(height: 12),
-
+if (FirebaseAuth.instance.currentUser != null)
 Container(
   padding: const EdgeInsets.all(12),
   decoration: BoxDecoration(

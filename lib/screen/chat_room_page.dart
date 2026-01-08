@@ -1,7 +1,6 @@
 import 'dart:async';
 import 'dart:io';
 import 'dart:math' as math;
-
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
@@ -9,8 +8,9 @@ import 'package:image_picker/image_picker.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:record/record.dart';
 import 'package:just_audio/just_audio.dart';
-
 import '../services/chat_service.dart';
+import 'shared_list_details_page.dart';
+import 'shared_spical_page.dart';
 
 class ChatRoomPage extends StatefulWidget {
   final String friendId;
@@ -28,18 +28,14 @@ class _ChatRoomPageState extends State<ChatRoomPage> {
   String? _replyToMessageId;
   String? _replyToText;
 
-  // 🎙 recording
   final _recorder = AudioRecorder();
   bool _isRecording = false;
   bool _hasVoicePreview = false;
   String? _recordPath;
   Duration _recordDuration = Duration.zero;
   Timer? _recordTimer;
-
-  // ❤️ double tap animation
   String? _animatingMessageId;
 
-  // 🔊 single-audio playback controller (ONLY ONE plays at a time)
   late final VoicePlaybackController _voiceController;
 
   late final String me;
@@ -77,7 +73,6 @@ class _ChatRoomPageState extends State<ChatRoomPage> {
     });
   }
 
-  // ================= VOICE RECORD =================
 
   Future<void> _startRecording() async {
     final ok = await _recorder.hasPermission();
@@ -133,10 +128,6 @@ class _ChatRoomPageState extends State<ChatRoomPage> {
       _recordDuration = Duration.zero;
     });
   }
-
-  // ================= REACTIONS / ACTIONS =================
-
-  // IMPORTANT: we pass a Rect (exact bubble position) so the pill is aligned nicely.
   void _showReactionOverlay({
     required Rect bubbleRect,
     required String messageId,
@@ -175,8 +166,6 @@ class _ChatRoomPageState extends State<ChatRoomPage> {
 
                   ),
                 ),
-
-                // 🔹 ACTIONS (BOTTOM)
                 Positioned(
                   bottom: 0,
                   left: 0,
@@ -240,8 +229,6 @@ class _ChatRoomPageState extends State<ChatRoomPage> {
       },
     );
   }
-
-  // ================= UI =================
 
   @override
   Widget build(BuildContext context) {
@@ -398,11 +385,80 @@ class _ChatRoomPageState extends State<ChatRoomPage> {
                                                   controller: _voiceController,
                                                   bubbleColor: Colors.white10,
                                                 )
-                                              : Text(
-                                                  text,
-                                                  style: const TextStyle(
-                                                      color: Colors.white),
-                                                ),
+                                         : type == 'list'
+                                          ? GestureDetector(
+                                              onTap: () {
+                                                final String? listType = m['listType'] as String?;
+                                                final String? ownerId = m['listOwnerId'] as String?;
+                                                final String? listId = m['listId'] as String?;
+                                                final String listName =
+                                                    (m['listName'] ?? 'Shared list').toString();
+
+                                                // 🛑 Safety check
+                                                if (listType == null || ownerId == null) {
+                                                  ScaffoldMessenger.of(context).showSnackBar(
+                                                    const SnackBar(content: Text('This shared list is unavailable')),
+                                                  );
+                                                  return;
+                                                }
+
+                                                if (listType == 'custom') {
+                                                  if (listId == null) {
+                                                    ScaffoldMessenger.of(context).showSnackBar(
+                                                      const SnackBar(content: Text('List not found')),
+                                                    );
+                                                    return;
+                                                  }
+
+                                                  Navigator.push(
+                                                    context,
+                                                    MaterialPageRoute(
+                                                      builder: (_) => SharedListDetailsPage(
+                                                        ownerId: ownerId,
+                                                        listId: listId,
+                                                        listName: listName,
+                                                      ),
+                                                    ),
+                                                  );
+                                                } else {
+                                                  // watchlist / watched
+                                                  Navigator.push(
+                                                    context,
+                                                    MaterialPageRoute(
+                                                      builder: (_) => SharedSpecialListPage(
+                                                        ownerId: ownerId,
+                                                        listType: listType,
+                                                        listName: listName,
+                                                      ),
+                                                    ),
+                                                  );
+                                                }
+                                              },
+
+
+                                                  child: Row(
+                                                    mainAxisSize: MainAxisSize.min,
+                                                    children: [
+                                                      const Icon(Icons.list, color: Colors.white),
+                                                      const SizedBox(width: 8),
+                                                      Flexible(
+                                                        child: Text(
+                                                          m['listName'],
+                                                          style: const TextStyle(
+                                                            color: Colors.white,
+                                                            fontWeight: FontWeight.w600,
+                                                          ),
+                                                        ),
+                                                      ),
+                                                    ],
+                                                  ),
+                                                )
+
+                                          // 💬 TEXT (default)
+                                          : Text(
+                                              text,
+                                              style: const TextStyle(color: Colors.white),
+                                            ),
                                 ),
 
                                 // ❤️ BIG DOUBLE-TAP HEART
@@ -437,7 +493,6 @@ class _ChatRoomPageState extends State<ChatRoomPage> {
             ),
           ),
 
-          // 🎙 VOICE PREVIEW BAR (BEFORE SENDING)
           if (_hasVoicePreview)
             Container(
               padding: const EdgeInsets.all(10),
@@ -558,7 +613,6 @@ class _ChatRoomPageState extends State<ChatRoomPage> {
   }
 }
 
-// ================== REACTION BADGE (ABOVE BUBBLE) ==================
 
 class _ReactionBadge extends StatelessWidget {
   final Map<String, dynamic> reactions;
@@ -594,7 +648,6 @@ class _ReactionBadge extends StatelessWidget {
   }
 }
 
-// ================== REACTION PILL (WHATSAPP STYLE) ==================
 
 class _ReactionPill extends StatelessWidget {
   final Function(String) onSelect;
@@ -684,9 +737,6 @@ class _EmojiPickerSheet extends StatelessWidget {
   }
 }
 
-// ================== SINGLE PLAYER CONTROLLER ==================
-// Docs: https://pub.dev/packages/just_audio
-
 class VoicePlaybackController {
   final AudioPlayer player = AudioPlayer();
   final ValueNotifier<String?> activeMessageId = ValueNotifier<String?>(null);
@@ -726,8 +776,6 @@ class VoicePlaybackController {
     player.dispose();
   }
 }
-
-// ================== VOICE BUBBLE (Waveform + Seek + Duration) ==================
 
 class VoiceMessageBubble extends StatefulWidget {
   final String messageId;
@@ -885,7 +933,6 @@ class _VoiceMessageBubbleState extends State<VoiceMessageBubble> {
   }
 }
 
-// “Instagram-ish” waveform (no extra packages).
 class _FakeWaveform extends StatelessWidget {
   final double progress; // 0..1
   final bool animate;
@@ -941,8 +988,6 @@ class _FakeWaveform extends StatelessWidget {
     );
   }
 }
-
-// ================== TIME FORMAT ==================
 
 String _fmt(Duration d) {
   final m = d.inMinutes.remainder(60).toString().padLeft(2, '0');

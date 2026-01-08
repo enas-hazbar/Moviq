@@ -15,6 +15,7 @@ import 'profile_page.dart';
 import '../widgets/nav_helpers.dart';
 import 'list_details_page.dart';
 import 'chats_page.dart';
+import 'share_list_page.dart';
 class WatchlistPage extends StatefulWidget {
   const WatchlistPage({super.key});
 
@@ -239,35 +240,51 @@ Widget _pageForTab(MoviqBottomTab tab) {
     );
   }
 
-  // 🔀 Header toggle
-  Widget _header() {
-    return Container(
-      padding: const EdgeInsets.all(12),
-      decoration: const BoxDecoration(
-        color: Colors.black,
-        border: Border(
-          top: BorderSide(color: Colors.white24),
-          bottom: BorderSide(color: Colors.white24),
+Widget _header() {
+  
+  return Container(
+    padding: const EdgeInsets.all(12),
+    decoration: const BoxDecoration(
+      color: Colors.black,
+      border: Border(
+        top: BorderSide(color: Colors.white24),
+        bottom: BorderSide(color: Colors.white24),
+      ),
+    ),
+    child: Row(
+      children: [
+        // 🔁 Tabs (center)
+        Expanded(
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              _tabButton(
+                label: 'Watchlist',
+                selected: !showWatched,
+                onTap: () => setState(() => showWatched = false),
+              ),
+              const SizedBox(width: 12),
+              _tabButton(
+                label: 'Watched',
+                selected: showWatched,
+                onTap: () => setState(() => showWatched = true),
+              ),
+            ],
+          ),
         ),
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          _tabButton(
-            label: 'Watchlist',
-            selected: !showWatched,
-            onTap: () => setState(() => showWatched = false),
-          ),
-          const SizedBox(width: 12),
-          _tabButton(
-            label: 'Watched',
-            selected: showWatched,
-            onTap: () => setState(() => showWatched = true),
-          ),
-        ],
-      ),
-    );
-  }
+
+        // 📤 SHARE BUTTON (right side)
+        IconButton(
+          icon: const Icon(Icons.share, color: Colors.white),
+          onPressed: () {
+            _openShareForCurrentTab();
+          },
+        ),
+      ],
+    ),
+  );
+}
+
 Widget _listsSection(String uid) {
   return Container(
     width: double.infinity,
@@ -512,4 +529,20 @@ Widget _listsSection(String uid) {
       },
     );
   }
+  void _openShareForCurrentTab() {
+  final listType = showWatched ? 'watched' : 'watchlist';
+  final listName = showWatched ? 'Watched' : 'Watchlist';
+
+  Navigator.push(
+    context,
+    MaterialPageRoute(
+      builder: (_) => ShareListPage(
+        listType: listType,
+        listName: listName,
+      ),
+    ),
+  );
 }
+
+}
+
