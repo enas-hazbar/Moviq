@@ -72,10 +72,42 @@ Future<void> _loadUsername() async {
     super.initState();
       _loadUsername(); 
     _movie = _tmdbService.getMovieDetails(widget.movieId);
+    _movie.then((data) {
+      _logRecentlyViewed(
+        movieId: widget.movieId,
+        title: (data['title'] ?? '').toString(),
+        posterPath: (data['poster_path'] ?? '').toString(),
+      );
+    });
     _videos = _tmdbService.getMovieVideos(widget.movieId);
     _credits = _tmdbService.getCredits(widget.movieId);
     _providers = _tmdbService.getWatchProviders(widget.movieId);
     _similar = _tmdbService.getSimilarMovies(widget.movieId);
+  }
+
+  Future<void> _logRecentlyViewed({
+    required int movieId,
+    required String title,
+    required String posterPath,
+  }) async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return;
+    if (title.isEmpty && posterPath.isEmpty) return;
+    try {
+      await FirebaseFirestore.instance
+          .collection('users')
+          .doc(user.uid)
+          .collection('recently_viewed')
+          .doc(movieId.toString())
+          .set({
+        'movieId': movieId,
+        'title': title,
+        'posterPath': posterPath,
+        'viewedAt': FieldValue.serverTimestamp(),
+      }, SetOptions(merge: true));
+    } catch (_) {
+      // Ignore permission errors.
+    }
   }
   Widget _watchlistButton({
   required int movieId,
