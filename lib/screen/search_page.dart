@@ -9,6 +9,7 @@ import '../widgets/moviq_scaffold.dart';
 import '../services/tmdb_service.dart';
 import '../models/movie.dart';
 import '../config/tmdb_config.dart';
+import 'chats_page.dart';
 
 class SearchPage extends StatefulWidget {
   const SearchPage({super.key});
@@ -513,6 +514,10 @@ class _SearchPageState extends State<SearchPage> {
         );
         break;
       case MoviqBottomTab.search:
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (_) => const SearchPage()),
+        );
         break;
       case MoviqBottomTab.chat:
         Navigator.pushReplacement(
@@ -520,11 +525,13 @@ class _SearchPageState extends State<SearchPage> {
           MaterialPageRoute(builder: (_) => const ChatPage()),
         );
         break;
-      case MoviqBottomTab.favorites:
+      case MoviqBottomTab.chats:
         Navigator.pushReplacement(
           context,
-          MaterialPageRoute(builder: (_) => const FavoritesPage()),
+          MaterialPageRoute(builder: (_) => const ChatsPage()),
         );
+        break;
+      case MoviqBottomTab.favorites:
         break;
       case MoviqBottomTab.profile:
         Navigator.pushReplacement(

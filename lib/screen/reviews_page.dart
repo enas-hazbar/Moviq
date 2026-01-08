@@ -11,6 +11,7 @@ import 'favorites_page.dart';
 import 'profile_page.dart'; 
 import 'friends_page.dart';
 import '../widgets/nav_helpers.dart';
+import 'chats_page.dart';
 class ReviewsPage extends StatefulWidget {
   const ReviewsPage({super.key});
 
@@ -38,6 +39,8 @@ class _ReviewsPageState extends State<ReviewsPage> {
         return const SearchPage();
       case MoviqBottomTab.chat:
         return const ChatPage();
+      case MoviqBottomTab.chats:
+          return const ChatsPage();  
       case MoviqBottomTab.favorites:
         return const FavoritesPage();
       case MoviqBottomTab.profile:

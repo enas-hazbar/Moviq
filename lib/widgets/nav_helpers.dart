@@ -9,10 +9,12 @@ int moviqTabIndex(MoviqBottomTab tab) {
       return 1;
     case MoviqBottomTab.chat:
       return 2;
-    case MoviqBottomTab.favorites:
+    case MoviqBottomTab.chats:
       return 3;
-    case MoviqBottomTab.profile:
+    case MoviqBottomTab.favorites:
       return 4;
+    case MoviqBottomTab.profile:
+      return 5;
   }
 }
 
