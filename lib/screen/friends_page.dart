@@ -12,6 +12,7 @@ import 'profile_page.dart';
 import 'reviews_page.dart';
 import 'watchlist_page.dart';
 import '../widgets/nav_helpers.dart';
+import 'chats_page.dart';
 
 class FriendsPage extends StatefulWidget {
   const FriendsPage({super.key});
@@ -32,7 +33,7 @@ class _FriendsPageState extends State<FriendsPage> {
     );
   }
 
-  Widget _pageForTab(MoviqBottomTab tab) {
+   Widget _pageForTab(MoviqBottomTab tab) {
     switch (tab) {
       case MoviqBottomTab.dashboard:
         return const HomePage();
@@ -40,6 +41,8 @@ class _FriendsPageState extends State<FriendsPage> {
         return const SearchPage();
       case MoviqBottomTab.chat:
         return const ChatPage();
+      case MoviqBottomTab.chats:
+          return const ChatsPage();  
       case MoviqBottomTab.favorites:
         return const FavoritesPage();
       case MoviqBottomTab.profile:

@@ -14,7 +14,8 @@ import '../widgets/nav_helpers.dart';
 import '../widgets/recent_activity_list.dart';
 import '../widgets/recently_viewed_list.dart';
 import 'PickFavoriteForSlotPage.dart';
-
+// import 'chat_room_page.dart';
+import 'chats_page.dart';
 
 class ProfilePage extends StatelessWidget {
   const ProfilePage({super.key});
@@ -208,6 +209,8 @@ class ProfilePage extends StatelessWidget {
         return const SearchPage();
       case MoviqBottomTab.chat:
         return const ChatPage();
+      case MoviqBottomTab.chats:
+          return const ChatsPage();  
       case MoviqBottomTab.favorites:
         return const FavoritesPage();
       case MoviqBottomTab.profile:
@@ -582,7 +585,19 @@ class _FriendRow extends StatelessWidget {
             style: const TextStyle(color: Colors.white, fontSize: 15),
           ),
           const Spacer(),
-          _RemoveFriendButton(friendId: friendId),
+        //   IconButton(
+        //   icon: const Icon(Icons.chat, color: Colors.white),
+        //   onPressed: () {
+        //     Navigator.push(
+        //       context,
+        //       MaterialPageRoute(
+        //         builder: (_) => ChatRoomPage(friendId: friendId),
+        //       ),
+        //     );
+        //   },
+        // ),
+          const SizedBox(width: 6),
+         _RemoveFriendButton(friendId: friendId),
         ],
       ),
     );

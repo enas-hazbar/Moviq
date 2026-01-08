@@ -22,12 +22,16 @@ dependencies:
   youtube_player_flutter: ^9.0.1
   image_picker: ^1.0.7
   flutter_image_compress: ^2.3.0
+  just_audio: ^0.9.36
+
 
   # Google Sign-In
   google_sign_in: ^6.2.1
 
   # Apple Sign-In
   sign_in_with_apple: ^6.1.0
+  record: ^6.1.2
+  path_provider: ^2.1.5
 
 dev_dependencies:
   flutter_test:
@@ -42,6 +46,7 @@ flutter:
     - assets/dashboard.png
     - assets/search.png
     - assets/chatbot.png
+    - assets/chat.png
     - assets/favorites.png
     - assets/profile.png
     - .env

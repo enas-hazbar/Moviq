@@ -5,6 +5,7 @@ import 'profile_page.dart';
 import 'search_page.dart';
 import 'home_page.dart';
 import '../widgets/nav_helpers.dart';
+import 'chats_page.dart';
 
 class ChatPage extends StatelessWidget {
   const ChatPage({super.key});
@@ -42,6 +43,8 @@ class ChatPage extends StatelessWidget {
         return const SearchPage();
       case MoviqBottomTab.chat:
         return const ChatPage();
+      case MoviqBottomTab.chats:
+          return const ChatsPage();  
       case MoviqBottomTab.favorites:
         return const FavoritesPage();
       case MoviqBottomTab.profile:

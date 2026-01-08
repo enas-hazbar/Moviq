@@ -9,6 +9,7 @@ import 'profile_page.dart';
 import 'search_page.dart';
 import '../widgets/recent_activity_list.dart';
 import '../widgets/recently_viewed_list.dart';
+import 'chats_page.dart';
 
 class FriendProfilePage extends StatelessWidget {
   const FriendProfilePage({
@@ -116,6 +117,8 @@ class FriendProfilePage extends StatelessWidget {
         return const SearchPage();
       case MoviqBottomTab.chat:
         return const ChatPage();
+      case MoviqBottomTab.chats:
+          return const ChatsPage();  
       case MoviqBottomTab.favorites:
         return const FavoritesPage();
       case MoviqBottomTab.profile:

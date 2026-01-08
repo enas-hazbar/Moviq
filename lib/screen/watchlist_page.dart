@@ -14,6 +14,7 @@ import 'favorites_page.dart';
 import 'profile_page.dart';
 import '../widgets/nav_helpers.dart';
 import 'list_details_page.dart';
+import 'chats_page.dart';
 class WatchlistPage extends StatefulWidget {
   const WatchlistPage({super.key});
 
@@ -139,7 +140,7 @@ Future<void> _createListDialog() async {
     );
   }
 
-  Widget _pageForTab(MoviqBottomTab tab) {
+Widget _pageForTab(MoviqBottomTab tab) {
     switch (tab) {
       case MoviqBottomTab.dashboard:
         return const HomePage();
@@ -147,6 +148,8 @@ Future<void> _createListDialog() async {
         return const SearchPage();
       case MoviqBottomTab.chat:
         return const ChatPage();
+      case MoviqBottomTab.chats:
+          return const ChatsPage();  
       case MoviqBottomTab.favorites:
         return const FavoritesPage();
       case MoviqBottomTab.profile:

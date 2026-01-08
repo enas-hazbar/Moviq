@@ -12,6 +12,7 @@ import '../widgets/nav_helpers.dart';
 import 'reviews_page.dart';
 import 'watchlist_page.dart';
 import 'friends_page.dart';
+import 'chats_page.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -111,6 +112,8 @@ class _HomePageState extends State<HomePage> {
         return const SearchPage();
       case MoviqBottomTab.chat:
         return const ChatPage();
+      case MoviqBottomTab.chats:
+          return const ChatsPage();  
       case MoviqBottomTab.favorites:
         return const FavoritesPage();
       case MoviqBottomTab.profile:

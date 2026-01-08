@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import '../services/chat_service.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 enum MoviqTopTab { films, reviews, friends, list }
-enum MoviqBottomTab { dashboard, search, chat, favorites, profile }
+enum MoviqBottomTab { dashboard, search, chat,chats, favorites, profile }
 
 class MoviqScaffold extends StatelessWidget {
   const MoviqScaffold({
@@ -144,6 +147,7 @@ class _BottomNav extends StatelessWidget {
       (MoviqBottomTab.dashboard, 'assets/dashboard.png'),
       (MoviqBottomTab.search, 'assets/search.png'),
       (MoviqBottomTab.chat, 'assets/chatbot.png'),
+      (MoviqBottomTab.chats, 'assets/chat.png'), 
       (MoviqBottomTab.favorites, 'assets/favorites.png'),
       (MoviqBottomTab.profile, 'assets/profile.png'),
     ];
@@ -159,7 +163,14 @@ class _BottomNav extends StatelessWidget {
         child: Row(
           mainAxisAlignment: MainAxisAlignment.spaceAround,
           children: [
-            for (final (tab, asset) in entries)
+          for (final (tab, asset) in entries)
+            if (tab == MoviqBottomTab.chats)
+              _ChatsBottomIcon(
+                assetPath: asset,
+                isActive: tab == activeTab,
+                onTap: onSelected == null ? null : () => onSelected!(tab),
+              )
+            else
               _BottomIcon(
                 assetPath: asset,
                 isActive: tab == activeTab,
@@ -171,6 +182,75 @@ class _BottomNav extends StatelessWidget {
     );
   }
 }
+class _ChatsBottomIcon extends StatelessWidget {
+  const _ChatsBottomIcon({
+    required this.assetPath,
+    required this.isActive,
+    this.onTap,
+  });
+
+  final String assetPath;
+  final bool isActive;
+  final VoidCallback? onTap;
+
+  int _totalUnreadForMe(List<QueryDocumentSnapshot<Map<String, dynamic>>> docs, String me) {
+    var total = 0;
+    for (final d in docs) {
+      final data = d.data();
+      final unread = (data['unread'] is Map) ? Map<String, dynamic>.from(data['unread']) : {};
+      total += (unread[me] as num?)?.toInt() ?? 0;
+    }
+    return total;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final me = FirebaseAuth.instance.currentUser?.uid;
+
+    // If not logged in, just show normal icon
+    if (me == null) {
+      return _BottomIcon(
+        assetPath: assetPath,
+        isActive: isActive,
+        onTap: onTap,
+      );
+    }
+
+    return StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
+      stream: ChatService().myChats(),
+      builder: (context, snap) {
+        final totalUnread = snap.hasData ? _totalUnreadForMe(snap.data!.docs, me) : 0;
+        final showDot = totalUnread > 0;
+
+        return Stack(
+          clipBehavior: Clip.none,
+          children: [
+            _BottomIcon(
+              assetPath: assetPath,
+              isActive: isActive,
+              onTap: onTap,
+            ),
+
+            if (showDot)
+              Positioned(
+                right: 6,
+                top: 6,
+                child: Container(
+                  width: 10,
+                  height: 10,
+                  decoration: const BoxDecoration(
+                    color: Color(0xFFE5A3A3),
+                    shape: BoxShape.circle,
+                  ),
+                ),
+              ),
+          ],
+        );
+      },
+    );
+  }
+}
+
 
 class _BottomIcon extends StatelessWidget {
   const _BottomIcon({

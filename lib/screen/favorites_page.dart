@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-
+import 'package:moviq/screen/chats_page.dart';
 import '../widgets/moviq_scaffold.dart';
 import 'chat_page.dart';
 import 'profile_page.dart';
@@ -213,6 +213,12 @@ class FavoritesPage extends StatelessWidget {
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(builder: (_) => const ChatPage()),
+        );
+        break;
+      case MoviqBottomTab.chats:
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (_) => const ChatsPage()),
         );
         break;
       case MoviqBottomTab.favorites:
