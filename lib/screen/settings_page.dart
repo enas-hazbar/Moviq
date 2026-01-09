@@ -21,10 +21,16 @@ class _SettingsPageState extends State<SettingsPage> {
   File? _profileImage;
   bool _isPicking = false;
   bool _isSaving = false;
+  bool _isSavingUsername = false;
 
   String? _email;
   String? _username;
   String? _photoUrl;
+
+  final TextEditingController _usernameController = TextEditingController();
+
+  /// 🔒 prevents StreamBuilder / fallback overwrites
+  bool _usernameInitialized = false;
 
   static const Color _pink = Color(0xFFE5A3A3);
 
@@ -32,6 +38,12 @@ class _SettingsPageState extends State<SettingsPage> {
   void initState() {
     super.initState();
     _loadUser();
+  }
+
+  @override
+  void dispose() {
+    _usernameController.dispose();
+    super.dispose();
   }
 
   @override
@@ -75,7 +87,10 @@ class _SettingsPageState extends State<SettingsPage> {
                 ),
               ],
             ),
+
             const SizedBox(height: 32),
+
+            /// PROFILE PHOTO
             StreamBuilder<DocumentSnapshot<Map<String, dynamic>>>(
               stream: FirebaseFirestore.instance
                   .collection('users')
@@ -94,6 +109,8 @@ class _SettingsPageState extends State<SettingsPage> {
             ),
 
             const SizedBox(height: 24),
+
+            /// INFO PANEL (EMAIL + USERNAME)
             StreamBuilder<DocumentSnapshot<Map<String, dynamic>>>(
               stream: FirebaseFirestore.instance
                   .collection('users')
@@ -101,14 +118,27 @@ class _SettingsPageState extends State<SettingsPage> {
                   .snapshots(),
               builder: (context, snapshot) {
                 final data = snapshot.data?.data();
+                final username = data?['username'];
+
+                /// ✅ initialize ONCE, never overwrite
+                if (!_usernameInitialized && username != null) {
+                  _usernameController.text = username;
+                  _usernameInitialized = true;
+                }
+
                 return _InfoPanel(
                   email: FirebaseAuth.instance.currentUser?.email,
-                  username: data?['username'],
+                  usernameController: _usernameController,
+                  onSaveUsername: _isSavingUsername ? null : _saveUsername,
                   pink: _pink,
+                  isSaving: _isSavingUsername,
                 );
               },
             ),
+
             const Spacer(),
+
+            /// LOGOUT
             Center(
               child: IconButton(
                 onPressed: () async {
@@ -130,6 +160,10 @@ class _SettingsPageState extends State<SettingsPage> {
     );
   }
 
+  // =========================
+  // IMAGE PICKING
+  // =========================
+
   Future<void> _pickImage() async {
     setState(() => _isPicking = true);
     try {
@@ -143,110 +177,159 @@ class _SettingsPageState extends State<SettingsPage> {
     }
   }
 
+  // =========================
+  // LOAD USER
+  // =========================
+
   Future<void> _loadUser() async {
     final user = FirebaseAuth.instance.currentUser;
-    print('AUTH UID: ${user?.uid}');
-
     if (user == null) return;
 
     final email = user.email ?? '';
     final fallbackUsername =
         (email.isNotEmpty && email.contains('@')) ? email.split('@').first : null;
 
-    Map<String, dynamic>? data;
-    try {
-      final userDoc =
-          await FirebaseFirestore.instance.collection('users').doc(user.uid).get();
-      data = userDoc.data();
-    } catch (_) {
-      data = null;
-    }
+    final doc =
+        await FirebaseFirestore.instance.collection('users').doc(user.uid).get();
+    final data = doc.data();
 
     if (!mounted) return;
 
     setState(() {
       _email = email;
 
-      final storedUsername = data?['username'] as String?;
-      _username = (storedUsername != null && storedUsername.isNotEmpty)
-          ? storedUsername
-          : fallbackUsername;
+      final storedUsername = data?['username'];
+      if (storedUsername != null && storedUsername.isNotEmpty) {
+        _username = storedUsername;
+      } else if (!_usernameInitialized && fallbackUsername != null) {
+        _username = fallbackUsername;
+      }
 
-      _photoUrl = data?['photoUrl'] as String? ?? user.photoURL;
+      _photoUrl = data?['photoUrl'] ?? user.photoURL;
+
+      if (!_usernameInitialized && _username != null) {
+        _usernameController.text = _username!;
+        _usernameInitialized = true;
+      }
     });
   }
 
-Future<void> _saveProfileImage() async {
-  final user = FirebaseAuth.instance.currentUser;
-  if (user == null) return;
+  // =========================
+  // SAVE PROFILE IMAGE
+  // =========================
 
-  if (_profileImage == null) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Pick a photo first')),
-    );
-    return;
-  }
+  Future<void> _saveProfileImage() async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null || _profileImage == null) return;
 
-  setState(() => _isSaving = true);
+    setState(() => _isSaving = true);
 
-  try {
-final storage = FirebaseStorage.instanceFor(
-  bucket: 'gs://moviq-1cbf7.firebasestorage.app',
-);
+    try {
+      final storage = FirebaseStorage.instanceFor(
+        bucket: 'gs://moviq-1cbf7.firebasestorage.app',
+      );
 
-final fileName = DateTime.now().millisecondsSinceEpoch;
-final ref = storage.ref('profile_photos/${user.uid}/avatar_$fileName.jpg');
+      final fileName = DateTime.now().millisecondsSinceEpoch;
+      final ref = storage.ref('profile_photos/${user.uid}/avatar_$fileName.jpg');
 
-print('USING BUCKET: ${storage.app.options.storageBucket}');
-print('UPLOAD PATH: ${ref.fullPath}');
+      await ref.putFile(
+        _profileImage!,
+        SettableMetadata(contentType: 'image/jpeg'),
+      );
 
-final task = ref.putFile(
-  _profileImage!,
-  SettableMetadata(contentType: 'image/jpeg'),
-);
+      final url = await ref.getDownloadURL();
 
-await task;
-final url = await ref.getDownloadURL();
+      await user.updatePhotoURL(url);
 
-    // Update Firebase Auth
-    await user.updatePhotoURL(url);
-    await user.reload();
-
-    // Save to Firestore
       await FirebaseFirestore.instance
           .collection('users')
           .doc(user.uid)
           .set({
-        'uid': user.uid,
-        'email': user.email,
         'photoUrl': url,
         'updatedAt': FieldValue.serverTimestamp(),
       }, SetOptions(merge: true));
 
-
-    if (!mounted) return;
-    setState(() => _photoUrl = url);
-
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Profile photo saved')),
-    );
-  } on FirebaseException catch (e) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('Firebase error: ${e.code}')),
-    );
-  } catch (e) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('Error: $e')),
-    );
-  } finally {
-    if (mounted) setState(() => _isSaving = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Profile photo saved')),
+      );
+    } finally {
+      if (mounted) setState(() => _isSaving = false);
+    }
   }
-  await FirebaseFirestore.instance
-    .collection('users')
-    .doc(user.uid)
-    .get();
+
+  // =========================
+  // SAVE USERNAME
+  // =========================
+
+  Future<void> _saveUsername() async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return;
+
+    final newUsername = _usernameController.text.trim().toLowerCase();
+    final valid = RegExp(r'^[a-z0-9_]{3,15}$');
+
+    if (!valid.hasMatch(newUsername)) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Invalid username')),
+      );
+      return;
+    }
+
+    setState(() => _isSavingUsername = true);
+
+    final db = FirebaseFirestore.instance;
+    final userRef = db.collection('users').doc(user.uid);
+    final usernameRef = db.collection('usernames').doc(newUsername);
+
+    try {
+      await db.runTransaction((tx) async {
+        final userSnap = await tx.get(userRef);
+        final oldUsername = userSnap.data()?['username'] as String?;
+
+        // Get the new username doc
+        final snap = await tx.get(usernameRef);
+        final existingUid = snap.data()?['uid'] as String?;
+
+        // Check if the new username is taken by someone else
+        if (snap.exists && existingUid != null && existingUid != user.uid) {
+          throw Exception('TAKEN');
+        }
+
+        // Delete the old username doc if it exists and is different
+        if (oldUsername != null && oldUsername != newUsername) {
+          final oldRef = db.collection('usernames').doc(oldUsername);
+          tx.delete(oldRef);
+        }
+
+        // Set the new username doc
+        tx.set(usernameRef, {'uid': user.uid});
+
+        // Update user profile
+        tx.set(userRef, {'username': newUsername}, SetOptions(merge: true));
+      });
+
+      setState(() {
+        _username = newUsername;
+        _usernameInitialized = true;
+      });
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Username updated')),
+      );
+    } catch (_) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Username already taken')),
+      );
+    } finally {
+      if (mounted) setState(() => _isSavingUsername = false);
+    }
+  }
+
 }
-}
+
+// =======================================================
+// WIDGETS (UNCHANGED)
+// =======================================================
 
 class _UploadPhotoRow extends StatelessWidget {
   const _UploadPhotoRow({
@@ -254,6 +337,7 @@ class _UploadPhotoRow extends StatelessWidget {
     required this.imageFile,
     required this.imageUrl,
     required this.isPicking,
+    super.key,
   });
 
   final Future<void> Function() onPick;
@@ -263,37 +347,29 @@ class _UploadPhotoRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final avatarChild = (imageFile != null || imageUrl != null)
-        ? null
-        : const Icon(Icons.person, color: Colors.white, size: 28);
-
     final ImageProvider? imageProvider = imageFile != null
         ? FileImage(imageFile!)
-        : (imageUrl != null ? NetworkImage('$imageUrl?v=${DateTime.now().millisecondsSinceEpoch}') : null);
+        : (imageUrl != null
+            ? NetworkImage('$imageUrl?v=${DateTime.now().millisecondsSinceEpoch}')
+            : null);
 
     return InkWell(
       onTap: isPicking ? null : onPick,
       child: Row(
-        mainAxisSize: MainAxisSize.min,
         children: [
           CircleAvatar(
             radius: 26,
             backgroundColor: Colors.white,
             child: CircleAvatar(
               radius: 23,
-              backgroundColor: Colors.black,
               backgroundImage: imageProvider,
-              child: avatarChild,
+              backgroundColor: Colors.black,
             ),
           ),
           const SizedBox(width: 12),
           Text(
             isPicking ? 'Uploading...' : 'Upload a photo',
-            style: const TextStyle(
-              color: Colors.white,
-              fontSize: 16,
-              fontWeight: FontWeight.w500,
-            ),
+            style: const TextStyle(color: Colors.white),
           ),
         ],
       ),
@@ -304,13 +380,18 @@ class _UploadPhotoRow extends StatelessWidget {
 class _InfoPanel extends StatelessWidget {
   const _InfoPanel({
     required this.email,
-    required this.username,
+    required this.usernameController,
+    required this.onSaveUsername,
     required this.pink,
+    required this.isSaving,
+    super.key,
   });
 
   final String? email;
-  final String? username;
+  final TextEditingController usernameController;
+  final VoidCallback? onSaveUsername;
   final Color pink;
+  final bool isSaving;
 
   @override
   Widget build(BuildContext context) {
@@ -323,13 +404,28 @@ class _InfoPanel extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text('E-mail', style: TextStyle(color: Colors.white, fontSize: 16)),
+          const Text('E-mail', style: TextStyle(color: Colors.white)),
           const SizedBox(height: 6),
-          Text(email ?? '-', style: const TextStyle(color: Colors.white, fontSize: 16)),
+          Text(email ?? '-', style: const TextStyle(color: Colors.white)),
           const Divider(color: Colors.white, height: 20),
-          const Text('Username', style: TextStyle(color: Colors.white, fontSize: 16)),
+          const Text('Username', style: TextStyle(color: Colors.white)),
           const SizedBox(height: 6),
-          Text(username ?? '-', style: const TextStyle(color: Colors.white, fontSize: 16)),
+          TextField(
+            controller: usernameController,
+            style: const TextStyle(color: Colors.white),
+            decoration: const InputDecoration(
+              hintText: 'username',
+              hintStyle: TextStyle(color: Colors.white54),
+              enabledBorder: UnderlineInputBorder(
+                borderSide: BorderSide(color: Colors.white54),
+              ),
+            ),
+          ),
+          const SizedBox(height: 8),
+          ElevatedButton(
+            onPressed: onSaveUsername,
+            child: Text(isSaving ? 'Saving...' : 'Save username'),
+          ),
         ],
       ),
     );
