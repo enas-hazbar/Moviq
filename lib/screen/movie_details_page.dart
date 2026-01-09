@@ -298,20 +298,38 @@ async {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-              ClipRRect(
-                borderRadius: BorderRadius.circular(12),
-                child: Image.network(
-                  TmdbConfig.imageBaseUrl + posterPath,
-                  width: double.infinity,
-                  fit: BoxFit.cover,
-                  errorBuilder: (_, __, ___) => Container(
-                    height: 350,
-                    color: Colors.white12,
-                    alignment: Alignment.center,
-                    child: const Icon(Icons.movie_outlined, color: Colors.white38, size: 50),
-                  ),
+                /// POSTER WITH FAVORITE HEART
+                Stack(
+                  children: [
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(12),
+                      child: Image.network(
+                        TmdbConfig.imageBaseUrl + posterPath,
+                        width: double.infinity,
+                        fit: BoxFit.cover,
+                        errorBuilder: (_, __, ___) => Container(
+                          height: 350,
+                          color: Colors.white12,
+                          alignment: Alignment.center,
+                          child: const Icon(
+                            Icons.movie_outlined,
+                            color: Colors.white38,
+                            size: 50,
+                          ),
+                        ),
+                      ),
+                    ),
+                    Positioned(
+                      top: 12,
+                      right: 12,
+                      child: FavoriteHeart(
+                        movieId: widget.movieId,
+                        posterPath: posterPath,
+                        width: 28,
+                      ),
+                    ),
+                  ],
                 ),
-              ),
                 const SizedBox(height: 16),
 
                 Text(
@@ -322,34 +340,34 @@ async {
                     fontWeight: FontWeight.bold,
                   ),
                 ),
-const SizedBox(height: 12),
-if (FirebaseAuth.instance.currentUser != null)
-Container(
-  padding: const EdgeInsets.all(12),
-  decoration: BoxDecoration(
-    color: Colors.white.withOpacity(0.04),
-    borderRadius: BorderRadius.circular(14),
-  ),
-  child: Row(
-    children: [
-      Expanded(
-        child: _watchlistButton(
-          movieId: widget.movieId,
-          title: movieTitle,
-          posterPath: posterPath,
-        ),
-      ),
-      const SizedBox(width: 12),
-      Expanded(
-        child: _watchedButton(
-          movieId: widget.movieId,
-          title: movieTitle,
-          posterPath: posterPath,
-        ),
-      ),
-    ],
-  ),
-),
+          const SizedBox(height: 12),
+          if (FirebaseAuth.instance.currentUser != null)
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: Colors.white.withOpacity(0.04),
+              borderRadius: BorderRadius.circular(14),
+            ),
+            child: Row(
+              children: [
+                Expanded(
+                  child: _watchlistButton(
+                    movieId: widget.movieId,
+                    title: movieTitle,
+                    posterPath: posterPath,
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: _watchedButton(
+                    movieId: widget.movieId,
+                    title: movieTitle,
+                    posterPath: posterPath,
+                  ),
+                ),
+              ],
+            ),
+          ),
 
 const SizedBox(height: 16),
 
