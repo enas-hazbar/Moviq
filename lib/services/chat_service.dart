@@ -1,11 +1,12 @@
 import 'dart:io';
+
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 
 class ChatService {
-  final _db = FirebaseFirestore.instance;
-  final _auth = FirebaseAuth.instance;
+  final FirebaseFirestore _db = FirebaseFirestore.instance;
+  final FirebaseAuth _auth = FirebaseAuth.instance;
   final _storage = FirebaseStorage.instanceFor(
     bucket: 'gs://moviq-1cbf7.firebasestorage.app',
   );
@@ -34,13 +35,87 @@ class ChatService {
       'participants': [uid, otherUid],
       'typing': {uid: false, otherUid: false},
       'unread': {uid: 0, otherUid: 0},
+      'lastMessage': '',
+      'lastMessageType': 'text',
       'lastMessageAt': FieldValue.serverTimestamp(),
       'updatedAt': FieldValue.serverTimestamp(),
+      'lastSeen': {},
     });
   }
 
-  // ---------------- TEXT ----------------
-  Future<void> sendText(String otherUid, String text) async {
+  // ---------------- STREAMS ----------------
+  Stream<QuerySnapshot<Map<String, dynamic>>> messagesStream(String otherUid) {
+    return _messagesRef(otherUid)
+        .orderBy('createdAt', descending: false)
+        .snapshots();
+  }
+
+  Stream<QuerySnapshot<Map<String, dynamic>>> myChats() {
+    return _db
+        .collection('chats')
+        .where('participants', arrayContains: uid)
+        .orderBy('lastMessageAt', descending: true)
+        .snapshots();
+  }
+
+  // ---------------- SEEN / UNREAD ----------------
+  Future<void> markSeen(String otherUid) async {
+    // Reset unread counter for me
+    await _chatRef(otherUid).set({
+      'unread.$uid': 0,
+      'lastSeen.$uid': FieldValue.serverTimestamp(),
+      'updatedAt': FieldValue.serverTimestamp(),
+    }, SetOptions(merge: true));
+
+    // Add me into seenBy for recent messages (simple + safe)
+    final recent = await _messagesRef(otherUid)
+        .orderBy('createdAt', descending: true)
+        .limit(50)
+        .get();
+
+    final batch = _db.batch();
+    for (final doc in recent.docs) {
+      final data = doc.data();
+      if (data['deleted'] == true) continue;
+
+      final seenByRaw = data['seenBy'];
+      final List<dynamic> seenBy = (seenByRaw is List) ? seenByRaw : [];
+      if (!seenBy.contains(uid)) {
+        batch.update(doc.reference, {
+          'seenBy': FieldValue.arrayUnion([uid]),
+          'updatedAt': FieldValue.serverTimestamp(),
+        });
+      }
+    }
+    await batch.commit();
+  }
+
+  // ---------------- TYPING ----------------
+  Future<void> setTyping(String otherUid, bool typing) async {
+    await ensureChatExists(otherUid);
+    await _chatRef(otherUid).set({
+      'typing.$uid': typing,
+      'updatedAt': FieldValue.serverTimestamp(),
+    }, SetOptions(merge: true));
+  }
+
+  Stream<bool> typingStream(String otherUid) {
+    return _chatRef(otherUid).snapshots().map((s) {
+      final data = s.data();
+      final typing = data?['typing'];
+      if (typing is Map) return typing[otherUid] == true;
+      return false;
+    });
+  }
+
+  // ---------------- SEND: TEXT ----------------
+  Future<void> sendText(
+    String otherUid,
+    String text, {
+    String? replyToId,
+    String? replyToText,
+    String? replyToSender,
+  }) async {
     final t = text.trim();
     if (t.isEmpty) return;
 
@@ -51,11 +126,22 @@ class ChatService {
       'senderId': uid,
       'text': t,
       'imageUrl': null,
+      'voiceUrl': null,
       'storagePath': null,
+
+      'replyToId': replyToId,
+      'replyToText': replyToText,
+      'replyToSender': replyToSender,
+
       'createdAt': FieldValue.serverTimestamp(),
+      'updatedAt': FieldValue.serverTimestamp(),
+      'editedAt': null,
+
       'seenBy': [uid],
       'deleted': false,
-      'reactions': {}, // keeps type stable
+
+      // { "<uid>": "❤️" } etc.
+      'reactions': <String, dynamic>{},
     });
 
     await _chatRef(otherUid).set({
@@ -67,8 +153,14 @@ class ChatService {
     }, SetOptions(merge: true));
   }
 
-  // ---------------- IMAGE ----------------
-  Future<void> sendImage(String otherUid, File file) async {
+  // ---------------- SEND: IMAGE ----------------
+  Future<void> sendImage(
+    String otherUid,
+    File file, {
+    String? replyToId,
+    String? replyToText,
+    String? replyToSender,
+  }) async {
     await ensureChatExists(otherUid);
 
     final msgDoc = _messagesRef(otherUid).doc();
@@ -82,11 +174,20 @@ class ChatService {
       'senderId': uid,
       'text': null,
       'imageUrl': url,
+      'voiceUrl': null,
       'storagePath': path,
+
+      'replyToId': replyToId,
+      'replyToText': replyToText,
+      'replyToSender': replyToSender,
+
       'createdAt': FieldValue.serverTimestamp(),
+      'updatedAt': FieldValue.serverTimestamp(),
+      'editedAt': null,
+
       'seenBy': [uid],
       'deleted': false,
-      'reactions': {},
+      'reactions': <String, dynamic>{},
     });
 
     await _chatRef(otherUid).set({
@@ -98,158 +199,204 @@ class ChatService {
     }, SetOptions(merge: true));
   }
 
-  // ---------------- STREAMS ----------------
-  Stream<QuerySnapshot<Map<String, dynamic>>> messagesStream(String otherUid) {
-    return _messagesRef(otherUid).orderBy('createdAt').snapshots();
-  }
-
-  // ---------------- SEEN ----------------
-  Future<void> markSeen(String otherUid) async {
-    await _chatRef(otherUid).set({
-      'unread.$uid': 0,
-    }, SetOptions(merge: true));
-  }
-
-  // ---------------- TYPING ----------------
-  Future<void> setTyping(String otherUid, bool typing) async {
+  // ---------------- SEND: VOICE ----------------
+  Future<void> sendVoiceMessage(
+    String otherUid,
+    File file, {
+    String? replyToId,
+    String? replyToText,
+    String? replyToSender,
+  }) async {
     await ensureChatExists(otherUid);
-    await _chatRef(otherUid).set({
-      'typing.$uid': typing,
-    }, SetOptions(merge: true));
-  }
 
-  Stream<bool> typingStream(String otherUid) {
-    return _chatRef(otherUid).snapshots().map(
-          (s) => (s.data()?['typing'] as Map?)?[otherUid] == true,
-        );
-  }
+    final msgDoc = _messagesRef(otherUid).doc();
+    final path = 'voice_messages/${chatIdWith(otherUid)}/${msgDoc.id}.m4a';
 
-  // ---------------- EDIT ----------------
-  Future<void> editMessage(String otherUid, String messageId, String newText) async {
-    await _messagesRef(otherUid).doc(messageId).update({
-      'text': newText.trim(),
-      'editedAt': FieldValue.serverTimestamp(),
+    await _storage.ref(path).putFile(file);
+    final url = await _storage.ref(path).getDownloadURL();
+
+    await msgDoc.set({
+      'type': 'voice',
+      'senderId': uid,
+      'text': null,
+      'imageUrl': null,
+      'voiceUrl': url,
+      'storagePath': path,
+
+      'replyToId': replyToId,
+      'replyToText': replyToText,
+      'replyToSender': replyToSender,
+
+      'createdAt': FieldValue.serverTimestamp(),
+      'updatedAt': FieldValue.serverTimestamp(),
+      'editedAt': null,
+
+      'seenBy': [uid],
+      'deleted': false,
+      'reactions': <String, dynamic>{},
     });
 
     await _chatRef(otherUid).set({
-      'lastMessage': newText.trim(),
+      'lastMessage': '🎤 Voice message',
+      'lastMessageType': 'voice',
+      'lastMessageAt': FieldValue.serverTimestamp(),
+      'updatedAt': FieldValue.serverTimestamp(),
+      'unread.$otherUid': FieldValue.increment(1),
     }, SetOptions(merge: true));
   }
 
-  // ---------------- DELETE ----------------
-  Future<void> deleteMessage(String otherUid, String messageId) async {
+  // ---------------- SEND: LIST (custom / watchlist / watched) ----------------
+  Future<void> sendList({
+    required String otherUid,
+    required String listType, // 'custom' | 'watchlist' | 'watched'
+    String? listId, // only for custom
+    required String listName,
+    String? replyToId,
+    String? replyToText,
+    String? replyToSender,
+  }) async {
+    await ensureChatExists(otherUid);
+
+    await _messagesRef(otherUid).add({
+      'type': 'list',
+      'senderId': uid,
+      'text': null,
+      'imageUrl': null,
+      'voiceUrl': null,
+      'storagePath': null,
+
+      'listType': listType,
+      'listId': listId,
+      'listOwnerId': uid,
+      'listName': listName,
+
+      'replyToId': replyToId,
+      'replyToText': replyToText,
+      'replyToSender': replyToSender,
+
+      'createdAt': FieldValue.serverTimestamp(),
+      'updatedAt': FieldValue.serverTimestamp(),
+      'editedAt': null,
+
+      'seenBy': [uid],
+      'deleted': false,
+      'reactions': <String, dynamic>{},
+    });
+
+    await _chatRef(otherUid).set({
+      'lastMessage': '📋 Shared: $listName',
+      'lastMessageType': 'list',
+      'lastMessageAt': FieldValue.serverTimestamp(),
+      'updatedAt': FieldValue.serverTimestamp(),
+      'unread.$otherUid': FieldValue.increment(1),
+    }, SetOptions(merge: true));
+  }
+
+  // ---------------- EDIT ----------------
+  Future<void> editMessage({
+    required String otherUid,
+    required String messageId,
+    required String newText,
+  }) async {
+    final t = newText.trim();
+    if (t.isEmpty) return;
+
     final ref = _messagesRef(otherUid).doc(messageId);
     final snap = await ref.get();
     if (!snap.exists) return;
 
     final data = snap.data() ?? {};
-    final storagePath = data['storagePath'];
+    if ((data['senderId'] ?? '').toString() != uid) return;
+    if ((data['type'] ?? '').toString() != 'text') return;
+    if (data['deleted'] == true) return;
 
-    // delete file if it's an image and path exists
+    await ref.update({
+      'text': t,
+      'editedAt': FieldValue.serverTimestamp(),
+      'updatedAt': FieldValue.serverTimestamp(),
+    });
+
+    await _chatRef(otherUid).set({
+      'lastMessage': t,
+      'lastMessageType': 'text',
+      'updatedAt': FieldValue.serverTimestamp(),
+    }, SetOptions(merge: true));
+  }
+
+  // ---------------- DELETE (soft delete + delete stored file) ----------------
+  Future<void> deleteMessage({
+    required String otherUid,
+    required String messageId,
+  }) async {
+    final ref = _messagesRef(otherUid).doc(messageId);
+    final snap = await ref.get();
+    if (!snap.exists) return;
+
+    final data = snap.data() ?? {};
+    if ((data['senderId'] ?? '').toString() != uid) return;
+
+    final storagePath = data['storagePath'];
     if (storagePath is String && storagePath.isNotEmpty) {
-      await _storage.ref(storagePath).delete();
+      try {
+        await _storage.ref(storagePath).delete();
+      } catch (_) {}
     }
 
-    // soft-delete message
     await ref.update({
       'deleted': true,
       'text': null,
       'imageUrl': null,
+      'voiceUrl': null,
       'storagePath': null,
+      'updatedAt': FieldValue.serverTimestamp(),
     });
   }
 
-  // ---------------- REACTIONS ----------------
-  Future<void> reactToMessage({
-    required String otherUid,
-    required String messageId,
-    required String emoji,
-  }) async {
-    final ref = _messagesRef(otherUid).doc(messageId);
+Future<void> reactToMessage({
+  required String otherUid,
+  required String messageId,
+  required String emoji, // '' to remove
+}) async {
+  final ref = _messagesRef(otherUid).doc(messageId);
 
-    if (emoji.isEmpty) {
-      await ref.update({'reactions.$uid': FieldValue.delete()});
-    } else {
-      await ref.set({'reactions.$uid': emoji}, SetOptions(merge: true));
-    }
+  if (emoji.isEmpty) {
+    await ref.update({
+      'reactions.$uid': FieldValue.delete(),
+      'updatedAt': FieldValue.serverTimestamp(),
+    });
+    return;
   }
 
-  Future<void> toggleHeart({
-    required String otherUid,
-    required String messageId,
-  }) async {
-    final ref = _messagesRef(otherUid).doc(messageId);
-    final snap = await ref.get();
-    if (!snap.exists) return;
-
-    final data = snap.data() ?? {};
-    final raw = data['reactions'];
-
-    final Map<String, dynamic> reactions =
-        (raw is Map) ? Map<String, dynamic>.from(raw) : {};
-
-    final current = reactions[uid]?.toString();
-
-    if (current == '❤️') {
-      await ref.update({'reactions.$uid': FieldValue.delete()});
-    } else {
-      await ref.set({'reactions.$uid': '❤️'}, SetOptions(merge: true));
-    }
-  }
-    Stream<QuerySnapshot<Map<String, dynamic>>> myChats() {
-    return _db
-        .collection('chats')
-        .where('participants', arrayContains: uid)
-        .orderBy('lastMessageAt', descending: true)
-        .snapshots();
-  }
-Future<void> sendVoiceMessage(String otherUid, File file) async {
-  await ensureChatExists(otherUid);
-
-  final msgDoc = _messagesRef(otherUid).doc();
-  final path = 'voice_messages/${chatIdWith(otherUid)}/${msgDoc.id}.m4a';
-
-  await _storage.ref(path).putFile(file);
-  final url = await _storage.ref(path).getDownloadURL();
-
-  await msgDoc.set({
-    'type': 'voice',
-    'senderId': uid,
-    'voiceUrl': url, // 👈 REQUIRED
-    'storagePath': path,
-    'createdAt': FieldValue.serverTimestamp(),
-    'seenBy': [uid],
+  await ref.update({
+    'reactions.$uid': emoji,
+    'updatedAt': FieldValue.serverTimestamp(),
   });
 }
-Future<void> sendList({
+
+
+Future<void> toggleHeart({
   required String otherUid,
-  required String listType, // 'custom' | 'watchlist' | 'watched'
-  String? listId,           // only for custom
-  required String listName,
+  required String messageId,
 }) async {
-  await ensureChatExists(otherUid);
+  final ref = _messagesRef(otherUid).doc(messageId);
+  final snap = await ref.get();
+  if (!snap.exists) return;
 
-  await _messagesRef(otherUid).add({
-    'type': 'list',
-    'senderId': uid,
+  final data = snap.data() ?? {};
+  final reactions = Map<String, dynamic>.from(data['reactions'] ?? {});
+  final current = reactions[uid];
 
-    // 🔑 list reference
-    'listType': listType,
-    'listId': listId,
-    'listOwnerId': uid,
-    'listName': listName,
-
-    'createdAt': FieldValue.serverTimestamp(),
-    'seenBy': [uid],
-  });
-
-  await _chatRef(otherUid).set({
-    'lastMessage': '📋 Shared: $listName',
-    'lastMessageType': 'list',
-    'lastMessageAt': FieldValue.serverTimestamp(),
-    'updatedAt': FieldValue.serverTimestamp(),
-    'unread.$otherUid': FieldValue.increment(1),
-  }, SetOptions(merge: true));
+  if (current == '❤️') {
+    await ref.update({
+      'reactions.$uid': FieldValue.delete(),
+      'updatedAt': FieldValue.serverTimestamp(),
+    });
+  } else {
+    await ref.update({
+      'reactions.$uid': '❤️',
+      'updatedAt': FieldValue.serverTimestamp(),
+    });
+  }
 }
 
 }

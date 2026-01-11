@@ -1,6 +1,5 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
-
 import '../models/movie.dart';
 import '../config/tmdb_config.dart';
 
@@ -11,7 +10,7 @@ class TmdbService {
     );
   }
 
-  /// 🔥 POPULAR
+  /// POPULAR
   Future<List<Movie>> getPopularMovies() async {
     final response = await http.get(_buildUri('/movie/popular'));
     final data = json.decode(response.body);
@@ -21,7 +20,7 @@ class TmdbService {
         .toList();
   }
 
-  /// 📈 TRENDING
+  /// TRENDING
   Future<List<Movie>> getTrendingMovies() async {
     final response = await http.get(_buildUri('/trending/movie/week'));
     final data = json.decode(response.body);
@@ -31,7 +30,7 @@ class TmdbService {
         .toList();
   }
 
-  /// ⏳ UPCOMING
+  /// UPCOMING
   Future<List<Movie>> getUpcomingMovies() async {
     final response = await http.get(_buildUri('/movie/upcoming'));
     final data = json.decode(response.body);
@@ -41,32 +40,32 @@ class TmdbService {
         .toList();
   }
 
-  /// 🎬 MOVIE DETAILS
+  /// MOVIE DETAILS
   Future<Map<String, dynamic>> getMovieDetails(int movieId) async {
     final response = await http.get(_buildUri('/movie/$movieId'));
     return json.decode(response.body);
   }
 
-  /// ▶️ VIDEOS
+  /// ▶VIDEOS
   Future<List<dynamic>> getMovieVideos(int movieId) async {
     final response = await http.get(_buildUri('/movie/$movieId/videos'));
     return json.decode(response.body)['results'];
   }
 
-  /// 🎭 CREDITS
+  /// CREDITS
   Future<Map<String, dynamic>> getCredits(int movieId) async {
     final response = await http.get(_buildUri('/movie/$movieId/credits'));
     return json.decode(response.body);
   }
 
-  /// 📺 WATCH PROVIDERS
+  /// WATCH PROVIDERS
   Future<Map<String, dynamic>> getWatchProviders(int movieId) async {
     final response =
         await http.get(_buildUri('/movie/$movieId/watch/providers'));
     return json.decode(response.body)['results'];
   }
 
-  /// 🎞️ SIMILAR
+  /// SIMILAR
   Future<List<Movie>> getSimilarMovies(int movieId) async {
     final response = await http.get(_buildUri('/movie/$movieId/similar'));
     final data = json.decode(response.body);
@@ -76,11 +75,9 @@ class TmdbService {
         .toList();
   }
 
-  // ========================
-  // 🔍 SEARCH & DISCOVER
-  // ========================
+  
 
-  /// 🎭 GENRES
+  /// GENRES
   Future<Map<int, String>> getGenres() async {
     final response = await http.get(_buildUri('/genre/movie/list'));
     final data = json.decode(response.body);
@@ -90,7 +87,7 @@ class TmdbService {
     };
   }
 
-  /// 🔍 SEARCH BY TITLE
+  /// SEARCH BY TITLE
   Future<List<Movie>> searchMovies(String query) async {
     final uri = Uri.parse(
       '${TmdbConfig.baseUrl}/search/movie'
@@ -105,7 +102,7 @@ class TmdbService {
         .toList();
   }
 
-  /// 🎛️ DISCOVER (FILTERS)
+  /// DISCOVER (FILTERS)
 Future<List<Movie>> discoverMovies({
   int? startYear,
   int? endYear,
@@ -134,9 +131,7 @@ Future<List<Movie>> discoverMovies({
       .toList();
 }
 
-  // ========================
-  // 👤 ACTORS
-  // ========================
+//actors
 
   Future<Map<String, dynamic>> getPersonDetails(int personId) async {
     final response = await http.get(_buildUri('/person/$personId'));
