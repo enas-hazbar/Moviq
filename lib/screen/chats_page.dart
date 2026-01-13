@@ -94,8 +94,15 @@ Future<void> _fixOldChats() async {
           }).toList();
 
           for (final doc in chats) {
-            final participants = List<String>.from(doc['participants']);
-            final friendId = participants.firstWhere((id) => id != me);
+            final participants = (doc['participants'] as List?)
+                    ?.whereType<String>()
+                    .toList() ??
+                [];
+            final friendId =
+                participants.firstWhere((id) => id != me, orElse: () => '');
+            if (friendId.isEmpty) {
+              continue;
+            }
             activeChatUserIds.add(friendId);
           }
 
@@ -139,9 +146,17 @@ Future<void> _fixOldChats() async {
                       final data = chats[i].data();
                       final Timestamp? lastMessageAt =
                           data['lastMessageAt'] as Timestamp?;
-                      final friendId =
-                          (data['participants'] as List)
-                              .firstWhere((id) => id != me);
+                      final participants = (data['participants'] as List?)
+                              ?.whereType<String>()
+                              .toList() ??
+                          [];
+                      final friendId = participants.firstWhere(
+                        (id) => id != me,
+                        orElse: () => '',
+                      );
+                      if (friendId.isEmpty) {
+                        return const SizedBox.shrink();
+                      }
 
                       final unread =
                           (data['unread']?[me] as int?) ?? 0;

@@ -35,8 +35,15 @@ class ChatPage extends StatelessWidget {
             itemCount: chats.length,
             itemBuilder: (context, index) {
               final data = chats[index].data();
-              final participants = List<String>.from(data['participants'] ?? []);
-              final friendId = participants.firstWhere((id) => id != me);
+              final participants = (data['participants'] as List?)
+                      ?.whereType<String>()
+                      .toList() ??
+                  [];
+              final friendId =
+                  participants.firstWhere((id) => id != me, orElse: () => '');
+              if (friendId.isEmpty) {
+                return const SizedBox.shrink();
+              }
 
               final unreadMap = (data['unread'] is Map) ? Map<String, dynamic>.from(data['unread']) : {};
               final int unreadCount = (unreadMap[me] as num?)?.toInt() ?? 0;
