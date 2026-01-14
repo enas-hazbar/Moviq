@@ -28,49 +28,51 @@ class _MovieDetailsPageState extends State<MovieDetailsPage> {
   late Future<Map<String, dynamic>> _providers;
   late Future<List<Movie>> _similar;
   Stream<bool> _isInWatchlist(int movieId) {
-  final user = FirebaseAuth.instance.currentUser;
-  if (user == null) return const Stream.empty();
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return const Stream.empty();
 
-  return FirebaseFirestore.instance
-      .collection('users')
-      .doc(user.uid)
-      .collection('watchlist')
-      .doc(movieId.toString())
-      .snapshots()
-      .map((doc) => doc.exists);
-}
-Stream<bool> _isWatched(int movieId) {
-  final user = FirebaseAuth.instance.currentUser;
-  if (user == null) return const Stream.empty();
+    return FirebaseFirestore.instance
+        .collection('users')
+        .doc(user.uid)
+        .collection('watchlist')
+        .doc(movieId.toString())
+        .snapshots()
+        .map((doc) => doc.exists);
+  }
 
-  return FirebaseFirestore.instance
-      .collection('users')
-      .doc(user.uid)
-      .collection('watched')
-      .doc(movieId.toString())
-      .snapshots()
-      .map((doc) => doc.exists);
-}
+  Stream<bool> _isWatched(int movieId) {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return const Stream.empty();
 
-Future<void> _loadUsername() async {
-  final user = FirebaseAuth.instance.currentUser;
-  if (user == null) return;
+    return FirebaseFirestore.instance
+        .collection('users')
+        .doc(user.uid)
+        .collection('watched')
+        .doc(movieId.toString())
+        .snapshots()
+        .map((doc) => doc.exists);
+  }
 
-  final doc = await FirebaseFirestore.instance
-      .collection('users')
-      .doc(user.uid)
-      .get();
+  Future<void> _loadUsername() async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return;
 
-  if (!mounted) return;
+    final doc = await FirebaseFirestore.instance
+        .collection('users')
+        .doc(user.uid)
+        .get();
 
-  setState(() {
-    _username = doc.data()?['username'] as String?;
-  });
-}
+    if (!mounted) return;
+
+    setState(() {
+      _username = doc.data()?['username'] as String?;
+    });
+  }
+
   @override
   void initState() {
     super.initState();
-      _loadUsername(); 
+    _loadUsername();
     _movie = _tmdbService.getMovieDetails(widget.movieId);
     _movie.then((data) {
       _logRecentlyViewed(
@@ -100,182 +102,185 @@ Future<void> _loadUsername() async {
           .collection('recently_viewed')
           .doc(movieId.toString())
           .set({
-        'movieId': movieId,
-        'title': title,
-        'posterPath': posterPath,
-        'viewedAt': FieldValue.serverTimestamp(),
-      }, SetOptions(merge: true));
+            'movieId': movieId,
+            'title': title,
+            'posterPath': posterPath,
+            'viewedAt': FieldValue.serverTimestamp(),
+          }, SetOptions(merge: true));
     } catch (_) {
       // Ignore permission errors.
     }
   }
+
   Widget _watchlistButton({
-  required int movieId,
-  required String title,
-  required String posterPath,
-}) {
-  return StreamBuilder<bool>(
-    stream: _isInWatchlist(movieId),
-    builder: (context, snapshot) {
-      final inWatchlist = snapshot.data ?? false;
+    required int movieId,
+    required String title,
+    required String posterPath,
+  }) {
+    return StreamBuilder<bool>(
+      stream: _isInWatchlist(movieId),
+      builder: (context, snapshot) {
+        final inWatchlist = snapshot.data ?? false;
 
-     return ElevatedButton.icon(
-  style: ElevatedButton.styleFrom(
-    backgroundColor:
-        inWatchlist ? Colors.white12 : const Color(0xFFE5A3A3),
-    foregroundColor: Colors.white,
-    padding: const EdgeInsets.symmetric(vertical: 16),
-    shape: RoundedRectangleBorder(
-      borderRadius: BorderRadius.circular(12),
-    ),
-  ),
-  icon: Icon(
-    inWatchlist ? Icons.check : Icons.add,
-    color: Colors.white,
-  ),
-  label: Text(
-    inWatchlist ? 'In Watchlist' : 'Add to Watchlist',
-  ),
-  onPressed: () async {
-    if (inWatchlist) {
-      await _removeFromWatchlist(movieId);
-    } else {
-      await _addToWatchlist(
-        movieId: movieId,
-        title: title,
-        posterPath: posterPath,
-      );
-    }
-  },
-);
-    },
-  );
-}
-Widget _watchedButton({
-  required int movieId,
-  required String title,
-  required String posterPath,
-}) {
-  return StreamBuilder<bool>(
-    stream: _isWatched(movieId),
-    builder: (context, snapshot) {
-      final isWatched = snapshot.data ?? false;
-
-      return ElevatedButton.icon(
-        style: ElevatedButton.styleFrom(
-          backgroundColor:
-              isWatched ? Colors.greenAccent.withOpacity(0.9) : Colors.white12,
-          foregroundColor: Colors.black,
-          padding: const EdgeInsets.symmetric(vertical: 16),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
+        return ElevatedButton.icon(
+          style: ElevatedButton.styleFrom(
+            backgroundColor: inWatchlist
+                ? Colors.white12
+                : const Color(0xFFE5A3A3),
+            foregroundColor: Colors.white,
+            padding: const EdgeInsets.symmetric(vertical: 16),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
           ),
-        ),
-        icon: Icon(
-          isWatched ? Icons.check_circle : Icons.visibility,
-          color: isWatched ? Colors.black : Colors.white,
-        ),
-        label: Text(
-          isWatched ? 'Watched' : 'Mark Watched',
-          style: TextStyle(
-            fontWeight: FontWeight.w600,
+          icon: Icon(
+            inWatchlist ? Icons.check : Icons.add,
+            color: Colors.white,
+          ),
+          label: Text(inWatchlist ? 'In Watchlist' : 'Add to Watchlist'),
+          onPressed: () async {
+            if (inWatchlist) {
+              await _removeFromWatchlist(movieId);
+            } else {
+              await _addToWatchlist(
+                movieId: movieId,
+                title: title,
+                posterPath: posterPath,
+              );
+            }
+          },
+        );
+      },
+    );
+  }
+
+  Widget _watchedButton({
+    required int movieId,
+    required String title,
+    required String posterPath,
+  }) {
+    return StreamBuilder<bool>(
+      stream: _isWatched(movieId),
+      builder: (context, snapshot) {
+        final isWatched = snapshot.data ?? false;
+
+        return ElevatedButton.icon(
+          style: ElevatedButton.styleFrom(
+            backgroundColor: isWatched
+                ? Colors.greenAccent.withOpacity(0.9)
+                : Colors.white12,
+            foregroundColor: Colors.black,
+            padding: const EdgeInsets.symmetric(vertical: 16),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
+          ),
+          icon: Icon(
+            isWatched ? Icons.check_circle : Icons.visibility,
             color: isWatched ? Colors.black : Colors.white,
           ),
-        ),
-        onPressed: () async {
-          final user = FirebaseAuth.instance.currentUser;
-          if (user == null) return;
+          label: Text(
+            isWatched ? 'Watched' : 'Mark Watched',
+            style: TextStyle(
+              fontWeight: FontWeight.w600,
+              color: isWatched ? Colors.black : Colors.white,
+            ),
+          ),
+          onPressed: () async {
+            final user = FirebaseAuth.instance.currentUser;
+            if (user == null) return;
 
-          if (isWatched) {
-            await FirebaseFirestore.instance
-                .collection('users')
-                .doc(user.uid)
-                .collection('watched')
-                .doc(movieId.toString())
-                .delete();
+            if (isWatched) {
+              await FirebaseFirestore.instance
+                  .collection('users')
+                  .doc(user.uid)
+                  .collection('watched')
+                  .doc(movieId.toString())
+                  .delete();
 
-            if (!mounted) return;
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('Removed from watched')),
-            );
-          } else {
-            await _markAsWatched(
-              movieId: movieId,
-              title: title,
-              posterPath: posterPath,
-            );
+              if (!mounted) return;
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('Removed from watched')),
+              );
+            } else {
+              await _markAsWatched(
+                movieId: movieId,
+                title: title,
+                posterPath: posterPath,
+              );
 
-            if (!mounted) return;
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('Marked as watched')),
-            );
-          }
-        },
-      );
-    },
-  );
-}
+              if (!mounted) return;
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('Marked as watched')),
+              );
+            }
+          },
+        );
+      },
+    );
+  }
 
+  Future<void> _addToWatchlist({
+    required int movieId,
+    required String title,
+    required String posterPath,
+  }) async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return;
 
-Future<void> _addToWatchlist({
-  required int movieId,
-  required String title,
-  required String posterPath,
-}) async {
-  final user = FirebaseAuth.instance.currentUser;
-  if (user == null) return;
+    await FirebaseFirestore.instance
+        .collection('users')
+        .doc(user.uid)
+        .collection('watchlist')
+        .doc(movieId.toString())
+        .set({
+          'movieId': movieId,
+          'title': title,
+          'posterPath': posterPath,
+          'addedAt': FieldValue.serverTimestamp(),
+        });
+  }
 
-  await FirebaseFirestore.instance
-      .collection('users')
-      .doc(user.uid)
-      .collection('watchlist')
-      .doc(movieId.toString())
-      .set({
-    'movieId': movieId,
-    'title': title,
-    'posterPath': posterPath,
-    'addedAt': FieldValue.serverTimestamp(),
-  });
-}
+  Future<void> _removeFromWatchlist(int movieId) async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return;
 
-Future<void> _removeFromWatchlist(int movieId) async {
-  final user = FirebaseAuth.instance.currentUser;
-  if (user == null) return;
+    await FirebaseFirestore.instance
+        .collection('users')
+        .doc(user.uid)
+        .collection('watchlist')
+        .doc(movieId.toString())
+        .delete();
+  }
 
-  await FirebaseFirestore.instance
-      .collection('users')
-      .doc(user.uid)
-      .collection('watchlist')
-      .doc(movieId.toString())
-      .delete();
-}
-Future<void> _markAsWatched({
-  required int movieId,
-  required String title,
-  required String posterPath,
-}) 
-async {
-  final user = FirebaseAuth.instance.currentUser;
-  if (user == null) return;
+  Future<void> _markAsWatched({
+    required int movieId,
+    required String title,
+    required String posterPath,
+  }) async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return;
 
-  final userRef =
-      FirebaseFirestore.instance.collection('users').doc(user.uid);
+    final userRef = FirebaseFirestore.instance
+        .collection('users')
+        .doc(user.uid);
 
-  // 1️⃣ Add to watched
-  await userRef.collection('watched').doc(movieId.toString()).set({
-    'movieId': movieId,
-    'title': title,
-    'posterPath': posterPath,
-    'watchedAt': FieldValue.serverTimestamp(),
-  });
+    // 1️⃣ Add to watched
+    await userRef.collection('watched').doc(movieId.toString()).set({
+      'movieId': movieId,
+      'title': title,
+      'posterPath': posterPath,
+      'watchedAt': FieldValue.serverTimestamp(),
+    });
 
-  // 2️⃣ Remove from watchlist (if exists)
-  await userRef.collection('watchlist').doc(movieId.toString()).delete();
-}
+    // 2️⃣ Remove from watchlist (if exists)
+    await userRef.collection('watchlist').doc(movieId.toString()).delete();
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      resizeToAvoidBottomInset: true, 
       backgroundColor: Colors.black,
       appBar: AppBar(
         title: const Text('Movie Details'),
@@ -340,40 +345,40 @@ async {
                     fontWeight: FontWeight.bold,
                   ),
                 ),
-          const SizedBox(height: 12),
-          if (FirebaseAuth.instance.currentUser != null)
-          Container(
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.04),
-              borderRadius: BorderRadius.circular(14),
-            ),
-            child: Row(
-              children: [
-                Expanded(
-                  child: _watchlistButton(
-                    movieId: widget.movieId,
-                    title: movieTitle,
-                    posterPath: posterPath,
+                const SizedBox(height: 12),
+                if (FirebaseAuth.instance.currentUser != null)
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withOpacity(0.04),
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: _watchlistButton(
+                            movieId: widget.movieId,
+                            title: movieTitle,
+                            posterPath: posterPath,
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: _watchedButton(
+                            movieId: widget.movieId,
+                            title: movieTitle,
+                            posterPath: posterPath,
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: _watchedButton(
-                    movieId: widget.movieId,
-                    title: movieTitle,
-                    posterPath: posterPath,
-                  ),
-                ),
-              ],
-            ),
-          ),
 
-const SizedBox(height: 16),
+                const SizedBox(height: 16),
 
-            const SizedBox(height: 16),
+                const SizedBox(height: 16),
 
-            _buildRatingsRow(tmdbRating),
+                _buildRatingsRow(tmdbRating),
 
                 const SizedBox(height: 12),
 
@@ -501,10 +506,10 @@ const SizedBox(height: 16),
     );
   }
 
- Widget _buildReviewsHeader({
-  required String movieTitle,
-  required String posterPath,
-}) {
+  Widget _buildReviewsHeader({
+    required String movieTitle,
+    required String posterPath,
+  }) {
     final user = FirebaseAuth.instance.currentUser;
 
     return Row(
@@ -529,10 +534,7 @@ const SizedBox(height: 16),
               );
               return;
             }
-_openReviewSheet(
-  movieTitle: movieTitle,
-  posterPath: posterPath,
-);
+            _openReviewSheet(movieTitle: movieTitle, posterPath: posterPath);
           },
           child: const Text('+ Review'),
         ),
@@ -540,11 +542,10 @@ _openReviewSheet(
     );
   }
 
-Future<void> _openReviewSheet({
-  required String movieTitle,
-  required String posterPath,
-}) async {
-
+  Future<void> _openReviewSheet({
+    required String movieTitle,
+    required String posterPath,
+  }) async {
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) return;
 
@@ -553,22 +554,23 @@ Future<void> _openReviewSheet({
       isScrollControlled: true,
       backgroundColor: Colors.white,
       builder: (ctx) {
-      return _ReviewSheet(
-        movieId: widget.movieId,
-        movieTitle: movieTitle,
-        posterPath: posterPath,
-        userId: user.uid,
-        userName: (_username != null && _username!.trim().isNotEmpty)
-        ? _username!.trim()
-        : (FirebaseAuth.instance.currentUser?.email?.split('@').first ?? 'User'),
-        reviewService: _reviewService,
-      );
-
+        return _ReviewSheet(
+          movieId: widget.movieId,
+          movieTitle: movieTitle,
+          posterPath: posterPath,
+          userId: user.uid,
+          userName: (_username != null && _username!.trim().isNotEmpty)
+              ? _username!.trim()
+              : (FirebaseAuth.instance.currentUser?.email?.split('@').first ??
+                    'User'),
+          reviewService: _reviewService,
+        );
       },
     );
 
     if (mounted) setState(() {});
   }
+
   /// Trailer
   Widget _buildTrailer() {
     return FutureBuilder<List<dynamic>>(
@@ -749,11 +751,11 @@ Future<void> _openReviewSheet({
                       IconButton(
                         icon: const Icon(Icons.edit, color: Colors.white70),
                         onPressed: () async {
-                      await _openReviewSheet(
-                        movieTitle: data['movieTitle'] ?? 'Unknown movie',
-                        posterPath: data['posterPath'] ?? '',
-                      );
-                                              },
+                          await _openReviewSheet(
+                            movieTitle: data['movieTitle'] ?? 'Unknown movie',
+                            posterPath: data['posterPath'] ?? '',
+                          );
+                        },
                       ),
                   ],
                 ),
@@ -843,7 +845,6 @@ class _ReviewSheet extends StatefulWidget {
   final String userName;
   final ReviewService reviewService;
 
-
   const _ReviewSheet({
     required this.movieId,
     required this.movieTitle,
@@ -874,185 +875,191 @@ class _ReviewSheetState extends State<_ReviewSheet> {
   Widget build(BuildContext context) {
     final bottomPadding = MediaQuery.of(context).viewInsets.bottom;
 
-    return Padding(
-      padding: EdgeInsets.only(
-        left: 16,
-        right: 16,
-        top: 16,
-        bottom: bottomPadding + 16,
-      ),
-      child: StreamBuilder(
-        stream: widget.reviewService.streamUserReview(
-          widget.movieId,
-          widget.userId,
+    return SafeArea(
+      child: SingleChildScrollView(
+        keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+        padding: EdgeInsets.fromLTRB(
+          16,
+          16,
+          16,
+          MediaQuery.of(context).viewInsets.bottom + 24,
         ),
-        builder: (context, snapshot) {
-          final exists = snapshot.hasData && snapshot.data!.exists;
+        
+        child: StreamBuilder(
+          stream: widget.reviewService.streamUserReview(
+            widget.movieId,
+            widget.userId,
+          ),
+          builder: (context, snapshot) {
+            final exists = snapshot.hasData && snapshot.data!.exists;
 
-          if (exists) {
-            final data = snapshot.data!.data() as Map<String, dynamic>;
-            final existingRating = (data['rating'] as num?)?.toInt() ?? 0;
-            final existingReview = (data['review'] as String?) ?? '';
+            if (exists) {
+              final data = snapshot.data!.data() as Map<String, dynamic>;
+              final existingRating = (data['rating'] as num?)?.toInt() ?? 0;
+              final existingReview = (data['review'] as String?) ?? '';
 
-            if (_rating == 0) _rating = existingRating;
-            if (_controller.text.isEmpty && existingReview.isNotEmpty) {
-              _controller.text = existingReview;
+              if (_rating == 0) _rating = existingRating;
+              if (_controller.text.isEmpty && existingReview.isNotEmpty) {
+                _controller.text = existingReview;
+              }
             }
-          }
 
-          return Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                  Expanded(
-                    child: Text(
-                      widget.movieTitle,
-                      style: const TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.black87,
+            return Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        widget.movieTitle,
+                        style: const TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.black87,
+                        ),
                       ),
                     ),
-                  ),
-                  IconButton(
-                    onPressed: () => Navigator.pop(context),
-                    icon: const Icon(Icons.close),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 12),
-
-              Text(
-                'Your rating: ${_rating == 0 ? "?" : _rating}/10',
-                style: const TextStyle(
-                  fontWeight: FontWeight.w600,
-                  color: Colors.black87,
-                ),
-              ),
-              const SizedBox(height: 8),
-
-              Wrap(
-                spacing: 2,
-                children: List.generate(10, (i) {
-                  final star = i + 1;
-                  final filled = star <= _rating;
-                  return IconButton(
-                    padding: EdgeInsets.zero,
-                    constraints: const BoxConstraints(),
-                    onPressed: () => setState(() => _rating = star),
-                    icon: Icon(
-                      filled ? Icons.star : Icons.star_border,
-                      color: Colors.orange,
+                    IconButton(
+                      onPressed: () => Navigator.pop(context),
+                      icon: const Icon(Icons.close),
                     ),
-                  );
-                }),
-              ),
-
-              const SizedBox(height: 12),
-
-              const Text(
-                'Review (optional)',
-                style: TextStyle(
-                  fontWeight: FontWeight.w600,
-                  color: Colors.black87,
+                  ],
                 ),
-              ),
-              const SizedBox(height: 6),
+                const SizedBox(height: 12),
 
-              TextField(
-                controller: _controller,
-                maxLines: 6,
-                style: TextStyle(color: Colors.black),
-                decoration: const InputDecoration(
-                  hintText: 'Write your review...',
-                  border: OutlineInputBorder(),
-                  hintStyle: TextStyle(color: Colors.black),
-                ),
-              ),
-
-              const SizedBox(height: 12),
-
-              Row(
-                children: [
-                  Expanded(
-                    child: ElevatedButton(
-                      onPressed: _saving
-                          ? null
-                          : () async {
-                              if (_rating < 1 || _rating > 10) {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  const SnackBar(
-                                    content: Text(
-                                      'Please select a rating (1–10)',
-                                    ),
-                                  ),
-                                );
-                                return;
-                              }
-
-                              setState(() => _saving = true);
-                              try {
-                                final review = Review(
-                                  movieId: widget.movieId,
-                                  movieTitle: widget.movieTitle,
-                                  posterPath: widget.posterPath,
-                                  userId: widget.userId,
-                                  userName: widget.userName,
-                                  userPhoto: user?.photoURL,
-                                  rating: _rating,
-                                  review: _controller.text.trim().isEmpty
-                                      ? null
-                                      : _controller.text.trim(),
-                                );
-
-                                await widget.reviewService.upsertReview(
-                                  widget.movieId,
-                                  review,
-                                );
-                                if (mounted) Navigator.pop(context);
-                              } finally {
-                                if (mounted) setState(() => _saving = false);
-                              }
-                            },
-                      child: Text(exists ? 'Update' : 'Submit'),
-                    ),
+                Text(
+                  'Your rating: ${_rating == 0 ? "?" : _rating}/10',
+                  style: const TextStyle(
+                    fontWeight: FontWeight.w600,
+                    color: Colors.black87,
                   ),
-                  if (exists) ...[
-                    const SizedBox(width: 10),
+                ),
+                const SizedBox(height: 8),
+
+                Wrap(
+                  spacing: 2,
+                  children: List.generate(10, (i) {
+                    final star = i + 1;
+                    final filled = star <= _rating;
+                    return IconButton(
+                      padding: EdgeInsets.zero,
+                      constraints: const BoxConstraints(),
+                      onPressed: () => setState(() => _rating = star),
+                      icon: Icon(
+                        filled ? Icons.star : Icons.star_border,
+                        color: Colors.orange,
+                      ),
+                    );
+                  }),
+                ),
+
+                const SizedBox(height: 12),
+
+                const Text(
+                  'Review (optional)',
+                  style: TextStyle(
+                    fontWeight: FontWeight.w600,
+                    color: Colors.black87,
+                  ),
+                ),
+                const SizedBox(height: 6),
+
+                TextField(
+                  controller: _controller,
+                  maxLines: 6,
+                  style: TextStyle(color: Colors.black),
+                  decoration: const InputDecoration(
+                    hintText: 'Write your review...',
+                    border: OutlineInputBorder(),
+                    hintStyle: TextStyle(color: Colors.black),
+                  ),
+                ),
+
+                const SizedBox(height: 12),
+
+                Row(
+                  children: [
                     Expanded(
                       child: ElevatedButton(
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.red,
-                        ),
                         onPressed: _saving
                             ? null
                             : () async {
+                                if (_rating < 1 || _rating > 10) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(
+                                      content: Text(
+                                        'Please select a rating (1–10)',
+                                      ),
+                                    ),
+                                  );
+                                  return;
+                                }
+
                                 setState(() => _saving = true);
                                 try {
-                                  await widget.reviewService.deleteReview(
+                                  final review = Review(
+                                    movieId: widget.movieId,
+                                    movieTitle: widget.movieTitle,
+                                    posterPath: widget.posterPath,
+                                    userId: widget.userId,
+                                    userName: widget.userName,
+                                    userPhoto: user?.photoURL,
+                                    rating: _rating,
+                                    review: _controller.text.trim().isEmpty
+                                        ? null
+                                        : _controller.text.trim(),
+                                  );
+
+                                  await widget.reviewService.upsertReview(
                                     widget.movieId,
-                                    widget.userId,
+                                    review,
                                   );
                                   if (mounted) Navigator.pop(context);
                                 } finally {
                                   if (mounted) setState(() => _saving = false);
                                 }
                               },
-                        child: const Text('Delete'),
+                        child: Text(exists ? 'Update' : 'Submit'),
                       ),
                     ),
+                    if (exists) ...[
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: ElevatedButton(
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.red,
+                          ),
+                          onPressed: _saving
+                              ? null
+                              : () async {
+                                  setState(() => _saving = true);
+                                  try {
+                                    await widget.reviewService.deleteReview(
+                                      widget.movieId,
+                                      widget.userId,
+                                    );
+                                    if (mounted) Navigator.pop(context);
+                                  } finally {
+                                    if (mounted)
+                                      setState(() => _saving = false);
+                                  }
+                                },
+                          child: const Text('Delete'),
+                        ),
+                      ),
+                    ],
                   ],
-                ],
-              ),
-            ],
-          );
-        },
+                ),
+              ],
+            );
+          },
+        ),
       ),
     );
   }
 }
+
 class FavoriteHeart extends StatelessWidget {
   final int movieId;
   final String posterPath;

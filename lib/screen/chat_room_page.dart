@@ -1,7 +1,6 @@
 import 'dart:async';
 import 'dart:io';
 import 'dart:math' as math;
-
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
@@ -9,10 +8,10 @@ import 'package:image_picker/image_picker.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:record/record.dart';
 import 'package:just_audio/just_audio.dart';
-
 import '../services/chat_service.dart';
 import 'shared_list_details_page.dart';
 import 'shared_spical_page.dart';
+import '../widgets/chat_list_preview.dart';
 
 class ChatRoomPage extends StatefulWidget {
   final String friendId;
@@ -567,87 +566,67 @@ if (type == 'text') {
       );
     }
 
-    // LIST ✅
-    if (type == 'list') {
-      final String? listType = m['listType'] as String?;
-      final String? ownerId = m['listOwnerId'] as String?;
-      final String? listId = m['listId'] as String?;
-      final String listName = (m['listName'] ?? 'Shared list').toString();
+    // LIST ✅ FINAL FIX
+if (type == 'list') {
+  final String? listType = m['listType'] as String?;
+  final String? ownerId = m['listOwnerId'] as String?;
+  final String? listId = m['listId'] as String?;
+  final String listName = (m['listName'] ?? 'Shared list').toString();
 
-      return _messageWrapper(
-        bubbleContext: bubbleContext,
-        isMeMsg: isMeMsg,
-        messageId: messageId,
-        type: type,
-        textForActions: listName,
-        child: _bubbleWrap(
-          isMe: isMeMsg,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              if (hasReply) replyPreview(),
-              GestureDetector(
-                onTap: () {
-                  if (listType == null || ownerId == null) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('This shared list is unavailable')),
-                    );
-                    return;
-                  }
+  return _messageWrapper(
+    bubbleContext: bubbleContext,
+    isMeMsg: isMeMsg,
+    messageId: messageId,
+    type: type,
+    textForActions: listName,
+    child: _bubbleWrap(
+      isMe: isMeMsg,
+      child: GestureDetector(
+        onTap: () {
+          if (listType == null || ownerId == null) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('This shared list is unavailable')),
+            );
+            return;
+          }
 
-                  if (listType == 'custom') {
-                    if (listId == null) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('List not found')),
-                      );
-                      return;
-                    }
-
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) => SharedListDetailsPage(
-                          ownerId: ownerId,
-                          listId: listId,
-                          listName: listName,
-                        ),
-                      ),
-                    );
-                  } else {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) => SharedSpecialListPage(
-                          ownerId: ownerId,
-                          listType: listType,
-                          listName: listName,
-                        ),
-                      ),
-                    );
-                  }
-                },
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    const Icon(Icons.list, color: Colors.white),
-                    const SizedBox(width: 8),
-                    Flexible(
-                      child: Text(
-                        listName,
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ),
-                  ],
+          if (listType == 'custom' && listId != null) {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (_) => SharedListDetailsPage(
+                  ownerId: ownerId,
+                  listId: listId,
+                  listName: listName,
                 ),
               ),
-            ],
-          ),
+            );
+          } else {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (_) => SharedSpecialListPage(
+                  ownerId: ownerId,
+                  listType: listType,
+                  listName: listName,
+                ),
+              ),
+            );
+          }
+        },
+
+        // 👇 ONE SINGLE BLOCK
+        child: ChatListBubblePreview(
+          ownerId: ownerId!,
+          listType: listType!,
+          listId: listId,
+          listName: listName,
         ),
-      );
-    }
+      ),
+    ),
+  );
+}
+
 
     return const SizedBox.shrink();
   }
@@ -657,6 +636,7 @@ if (type == 'text') {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      resizeToAvoidBottomInset: true, 
       backgroundColor: Colors.black,
       appBar: AppBar(
         backgroundColor: Colors.black,

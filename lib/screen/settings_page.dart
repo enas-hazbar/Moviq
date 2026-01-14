@@ -136,8 +136,6 @@ class _SettingsPageState extends State<SettingsPage> {
               },
             ),
 
-            const Spacer(),
-
             /// LOGOUT
             Center(
               child: IconButton(

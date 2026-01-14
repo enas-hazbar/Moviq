@@ -26,22 +26,19 @@ class ChatService {
     return _chatRef(otherUid).collection('messages');
   }
 
-  Future<void> ensureChatExists(String otherUid) async {
-    final ref = _chatRef(otherUid);
-    final snap = await ref.get();
-    if (snap.exists) return;
+Future<void> ensureChatExists(String otherUid) async {
+  await _chatRef(otherUid).set({
+    'participants': [uid, otherUid],
+    'typing': {uid: false, otherUid: false},
+    'unread': {uid: 0, otherUid: 0},
+    'lastMessage': '',
+    'lastMessageType': 'text',
+    'lastMessageAt': FieldValue.serverTimestamp(),
+    'updatedAt': FieldValue.serverTimestamp(),
+    'lastSeen': {},
+  }, SetOptions(merge: true)); // 🔑 important
+}
 
-    await ref.set({
-      'participants': [uid, otherUid],
-      'typing': {uid: false, otherUid: false},
-      'unread': {uid: 0, otherUid: 0},
-      'lastMessage': '',
-      'lastMessageType': 'text',
-      'lastMessageAt': FieldValue.serverTimestamp(),
-      'updatedAt': FieldValue.serverTimestamp(),
-      'lastSeen': {},
-    });
-  }
 
   // ---------------- STREAMS ----------------
   Stream<QuerySnapshot<Map<String, dynamic>>> messagesStream(String otherUid) {
