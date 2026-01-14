@@ -204,7 +204,6 @@ class _SettingsPageState extends State<SettingsPage> {
       }
 
       _photoUrl = data?['photoUrl'] ?? user.photoURL;
-
       if (!_usernameInitialized && _username != null) {
         _usernameController.text = _username!;
         _usernameInitialized = true;
@@ -218,41 +217,70 @@ class _SettingsPageState extends State<SettingsPage> {
 
   Future<void> _saveProfileImage() async {
     final user = FirebaseAuth.instance.currentUser;
-    if (user == null || _profileImage == null) return;
+    if (user == null) return;
+    if (_profileImage == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Pick a photo first')),
+      );
+      return;
+    }
 
     setState(() => _isSaving = true);
 
     try {
-      final storage = FirebaseStorage.instanceFor(
-        bucket: 'gs://moviq-1cbf7.firebasestorage.app',
-      );
+      final updates = <String, dynamic>{
+        'updatedAt': FieldValue.serverTimestamp(),
+      };
 
       final fileName = DateTime.now().millisecondsSinceEpoch;
-      final ref = storage.ref('profile_photos/${user.uid}/avatar_$fileName.jpg');
-
-      await ref.putFile(
-        _profileImage!,
-        SettableMetadata(contentType: 'image/jpeg'),
-      );
-
-      final url = await ref.getDownloadURL();
-
+      final path = 'profile_photos/${user.uid}/avatar_$fileName.jpg';
+      final url = await _uploadWithFallback(path, _profileImage!);
       await user.updatePhotoURL(url);
+      updates['photoUrl'] = url;
+      _photoUrl = url;
 
       await FirebaseFirestore.instance
           .collection('users')
           .doc(user.uid)
-          .set({
-        'photoUrl': url,
-        'updatedAt': FieldValue.serverTimestamp(),
-      }, SetOptions(merge: true));
+          .set(updates, SetOptions(merge: true));
 
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Profile photo saved')),
       );
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Failed to save profile: $e')),
+      );
     } finally {
       if (mounted) setState(() => _isSaving = false);
     }
+  }
+
+  Future<String> _uploadWithFallback(String path, File file) async {
+    try {
+      return await _uploadToBucket(FirebaseStorage.instance, path, file);
+    } on FirebaseException catch (e) {
+      if (e.code != 'object-not-found' && e.code != 'bucket-not-found') {
+        rethrow;
+      }
+      final fallbackStorage = FirebaseStorage.instanceFor(
+        bucket: 'gs://moviq-1cbf7.firebasestorage.app',
+      );
+      return await _uploadToBucket(fallbackStorage, path, file);
+    }
+  }
+
+  Future<String> _uploadToBucket(
+    FirebaseStorage storage,
+    String path,
+    File file,
+  ) async {
+    final ref = storage.ref(path);
+    final snapshot = await ref.putFile(
+      file,
+      SettableMetadata(contentType: 'image/jpeg'),
+    );
+    return snapshot.ref.getDownloadURL();
   }
 
   // =========================
@@ -347,7 +375,7 @@ class _UploadPhotoRow extends StatelessWidget {
   Widget build(BuildContext context) {
     final ImageProvider? imageProvider = imageFile != null
         ? FileImage(imageFile!)
-        : (imageUrl != null
+        : (imageUrl != null && imageUrl!.isNotEmpty
             ? NetworkImage('$imageUrl?v=${DateTime.now().millisecondsSinceEpoch}')
             : null);
 
@@ -373,6 +401,7 @@ class _UploadPhotoRow extends StatelessWidget {
       ),
     );
   }
+
 }
 
 class _InfoPanel extends StatelessWidget {

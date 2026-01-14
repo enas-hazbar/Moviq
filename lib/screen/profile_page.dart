@@ -1,4 +1,8 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
+import 'package:firebase_storage/firebase_storage.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../widgets/moviq_scaffold.dart';
@@ -17,7 +21,7 @@ import 'PickFavoriteForSlotPage.dart';
 // import 'chat_room_page.dart';
 import 'chats_page.dart';
 
-class ProfilePage extends StatelessWidget {
+class ProfilePage extends StatefulWidget {
   const ProfilePage({super.key});
 
   static const Color _pink = Color(0xFFE5A3A3);
@@ -27,6 +31,72 @@ class ProfilePage extends StatelessWidget {
     fontWeight: FontWeight.w600,
     height: 1.4,
   );
+
+  @override
+  State<ProfilePage> createState() => _ProfilePageState();
+}
+
+class _ProfilePageState extends State<ProfilePage> {
+  bool _isUploadingCover = false;
+
+  Future<void> _pickAndUploadCover() async {
+    if (_isUploadingCover) return;
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return;
+
+    final picker = ImagePicker();
+    final picked = await picker.pickImage(source: ImageSource.gallery);
+    if (picked == null) return;
+
+    setState(() => _isUploadingCover = true);
+    try {
+      final file = File(picked.path);
+      final fileName = DateTime.now().millisecondsSinceEpoch;
+      final path = 'profile_photos/${user.uid}/cover_$fileName.jpg';
+      final url = await _uploadWithFallback(path, file);
+      await FirebaseFirestore.instance
+          .collection('users')
+          .doc(user.uid)
+          .set({
+        'coverPhotoUrl': url,
+        'updatedAt': FieldValue.serverTimestamp(),
+      }, SetOptions(merge: true));
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Failed to upload cover: $e')),
+      );
+    } finally {
+      if (mounted) setState(() => _isUploadingCover = false);
+    }
+  }
+
+  Future<String> _uploadWithFallback(String path, File file) async {
+    try {
+      return await _uploadToBucket(FirebaseStorage.instance, path, file);
+    } on FirebaseException catch (e) {
+      if (e.code != 'object-not-found' && e.code != 'bucket-not-found') {
+        rethrow;
+      }
+      final fallbackStorage = FirebaseStorage.instanceFor(
+        bucket: 'gs://moviq-1cbf7.firebasestorage.app',
+      );
+      return await _uploadToBucket(fallbackStorage, path, file);
+    }
+  }
+
+  Future<String> _uploadToBucket(
+    FirebaseStorage storage,
+    String path,
+    File file,
+  ) async {
+    final ref = storage.ref(path);
+    final snapshot = await ref.putFile(
+      file,
+      SettableMetadata(contentType: 'image/jpeg'),
+    );
+    return snapshot.ref.getDownloadURL();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -54,8 +124,11 @@ class ProfilePage extends StatelessWidget {
               ],
             ),
             const SizedBox(height: 8),
-            Center(child: _ProfileAvatar()),
-            const SizedBox(height: 28),
+            _ProfileHeader(
+              onCoverTap: _pickAndUploadCover,
+              isUploading: _isUploadingCover,
+            ),
+            const SizedBox(height: 42),
 
             // My Faves
             const _SectionHeader(title: 'My Faves:'),
@@ -230,6 +303,142 @@ class _SectionHeader extends StatelessWidget {
   }
 }
 
+class _ProfileHeader extends StatelessWidget {
+  const _ProfileHeader({
+    required this.onCoverTap,
+    required this.isUploading,
+  });
+
+  final VoidCallback onCoverTap;
+  final bool isUploading;
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      height: 200,
+      child: Stack(
+        clipBehavior: Clip.none,
+        children: [
+          _ProfileCover(
+            onTap: onCoverTap,
+            isUploading: isUploading,
+          ),
+          Positioned(
+            left: 16,
+            bottom: -18,
+            child: _ProfileAvatar(),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ProfileCover extends StatelessWidget {
+  const _ProfileCover({
+    required this.onTap,
+    required this.isUploading,
+  });
+
+  final VoidCallback onTap;
+  final bool isUploading;
+
+  @override
+  Widget build(BuildContext context) {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) {
+      return _coverPlaceholder();
+    }
+
+    return StreamBuilder<DocumentSnapshot<Map<String, dynamic>>>(
+      stream: FirebaseFirestore.instance
+          .collection('users')
+          .doc(user.uid)
+          .snapshots(),
+      builder: (context, snap) {
+        if (!snap.hasData || !snap.data!.exists) {
+          return _coverPlaceholder();
+        }
+        final data = snap.data!.data();
+        final coverUrl = data?['coverPhotoUrl'] as String?;
+        final hasUrl = coverUrl != null && coverUrl.isNotEmpty;
+
+        return GestureDetector(
+          onTap: onTap,
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(12),
+            child: SizedBox(
+              height: 160,
+              width: double.infinity,
+              child: Stack(
+                fit: StackFit.expand,
+                children: [
+                  if (hasUrl)
+                    Image.network(
+                      coverUrl!,
+                      fit: BoxFit.cover,
+                      errorBuilder: (_, __, ___) => _coverPlaceholder(),
+                    )
+                  else
+                    _coverPlaceholder(),
+                  Positioned(
+                    left: 0,
+                    right: 0,
+                    bottom: 0,
+                    child: Container(
+                      height: 70,
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          begin: Alignment.topCenter,
+                          end: Alignment.bottomCenter,
+                          colors: [
+                            Colors.black.withOpacity(0.0),
+                            Colors.black.withOpacity(0.7),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                  if (isUploading)
+                    Container(
+                      color: Colors.black.withOpacity(0.35),
+                      alignment: Alignment.center,
+                      child: const SizedBox(
+                        width: 22,
+                        height: 22,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: Colors.white70,
+                        ),
+                      ),
+                    ),
+                ],
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _coverPlaceholder() {
+    return Container(
+      height: 160,
+      width: double.infinity,
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(12),
+        gradient: const LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [Color(0xFF1A1A1A), Color(0xFF0E0E0E)],
+        ),
+      ),
+      alignment: Alignment.center,
+      child: const Icon(Icons.image_outlined, color: Colors.white38, size: 28),
+    );
+  }
+}
+
 class _ProfileAvatar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
@@ -261,16 +470,17 @@ return StreamBuilder<DocumentSnapshot<Map<String, dynamic>>>(
 
     final data = snap.data!.data();
     final photoUrl = data?['photoUrl'] as String?;
+    final safeUrl = (photoUrl != null && photoUrl.isNotEmpty) ? photoUrl : null;
 
-    if (photoUrl == null || photoUrl.isEmpty) {
+    if (safeUrl == null) {
       return const _AvatarShell(
         child: Icon(Icons.person, color: Colors.white, size: 48),
       );
     }
 
 return _AvatarShell(
-  key: ValueKey(photoUrl),
-  imageProvider: NetworkImage(photoUrl),
+  key: ValueKey(safeUrl),
+  imageProvider: NetworkImage(safeUrl),
 );
 
   },
