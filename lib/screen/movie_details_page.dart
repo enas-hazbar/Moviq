@@ -1100,11 +1100,26 @@ class FavoriteHeart extends StatelessWidget {
               });
             }
           },
+          child: Container(
+          padding: const EdgeInsets.all(6),
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            color: Colors.black.withOpacity(0.45), // 👈 works on white & black posters
+            boxShadow: const [
+              BoxShadow(
+                color: Colors.black26,
+                blurRadius: 6,
+                offset: Offset(0, 2),
+              ),
+            ],
+          ),
           child: Icon(
             Icons.favorite,
             size: width,
-            color: isFavorite ? Colors.redAccent : Colors.white38,
+            color: isFavorite ? Colors.redAccent : Colors.white,
           ),
+        ),
+
         );
       },
     );

@@ -681,16 +681,20 @@ if (type == 'list') {
             child: StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
               stream: _chat.messagesStream(other),
               builder: (_, snap) {
-                if (!snap.hasData) {
-                  return const Center(child: CircularProgressIndicator());
-                }
+               if (snap.connectionState == ConnectionState.waiting) {
+                    return const Center(child: CircularProgressIndicator());
+                  }
 
-                final docs = snap.data!.docs;
+                  final docs = snap.data?.docs ?? [];
 
-                WidgetsBinding.instance.addPostFrameCallback((_) async {
-                  await _chat.markSeen(other);
-                });
-
+                  if (docs.isEmpty) {
+                    return const Center(
+                      child: Text(
+                        'Say hi 👋',
+                        style: TextStyle(color: Colors.white54, fontSize: 16),
+                      ),
+                    );
+                  }
                 _scrollBottom();
 
                 return ListView.builder(
@@ -822,38 +826,41 @@ if (type == 'list') {
             ),
 
           // voice preview OR input
-          if (_hasVoicePreview)
-            Container(
-              padding: const EdgeInsets.all(10),
-              decoration: const BoxDecoration(
-                color: Colors.black,
-                border: Border(top: BorderSide(color: Colors.white12)),
-              ),
-              child: Row(
-                children: [
-                  IconButton(
-                    icon: const Icon(Icons.delete, color: Colors.redAccent),
-                    onPressed: _deleteVoicePreview,
-                  ),
-                  Expanded(
-                    child: Row(
-                      children: [
-                        const Icon(Icons.mic, color: Colors.white70, size: 18),
-                        const SizedBox(width: 8),
-                        Text(
-                          'Voice message • ${_fmt(_recordDuration)}',
-                          style: const TextStyle(color: Colors.white),
-                        ),
-                      ],
-                    ),
-                  ),
-                  IconButton(
-                    icon: const Icon(Icons.send, color: Color(0xFFE5A3A3)),
-                    onPressed: _sendVoice,
-                  ),
-                ],
-              ),
-            )
+      if (_hasVoicePreview)
+  SafeArea(
+    top: false,
+    child: Container(
+      padding: const EdgeInsets.fromLTRB(10, 10, 10, 16),
+      decoration: const BoxDecoration(
+        color: Colors.black,
+        border: Border(top: BorderSide(color: Colors.white12)),
+      ),
+      child: Row(
+        children: [
+          IconButton(
+            icon: const Icon(Icons.delete, color: Colors.redAccent),
+            onPressed: _deleteVoicePreview,
+          ),
+          Expanded(
+            child: Row(
+              children: [
+                const Icon(Icons.mic, color: Colors.white70, size: 18),
+                const SizedBox(width: 8),
+                Text(
+                  'Voice message • ${_fmt(_recordDuration)}',
+                  style: const TextStyle(color: Colors.white),
+                ),
+              ],
+            ),
+          ),
+          IconButton(
+            icon: const Icon(Icons.send, color: Color(0xFFE5A3A3)),
+            onPressed: _sendVoice,
+          ),
+        ],
+      ),
+    ),
+  )
           else
             SafeArea(
               child: Container(
