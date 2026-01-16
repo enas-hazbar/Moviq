@@ -3,6 +3,8 @@ import 'dart:io';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_storage/firebase_storage.dart';
+import 'package:flutter/foundation.dart';
+import 'package:flutter/scheduler.dart';
 
 class ChatService {
   final FirebaseFirestore _db = FirebaseFirestore.instance;
@@ -10,12 +12,33 @@ class ChatService {
   final _storage = FirebaseStorage.instanceFor(
     bucket: 'gs://moviq-1cbf7.firebasestorage.app',
   );
+  static final ValueNotifier<String?> activeChatId = ValueNotifier<String?>(null);
 
   String get uid => _auth.currentUser!.uid;
 
   String chatIdWith(String otherUid) {
     final ids = [uid, otherUid]..sort();
     return ids.join('_');
+  }
+
+  void setActiveChat(String? otherUid) {
+    if (otherUid == null) {
+      _setActiveChatValue(null);
+      return;
+    }
+    _setActiveChatValue(chatIdWith(otherUid));
+  }
+
+  void _setActiveChatValue(String? value) {
+    final phase = SchedulerBinding.instance.schedulerPhase;
+    if (phase == SchedulerPhase.idle ||
+        phase == SchedulerPhase.postFrameCallbacks) {
+      activeChatId.value = value;
+    } else {
+      SchedulerBinding.instance.addPostFrameCallback((_) {
+        activeChatId.value = value;
+      });
+    }
   }
 
   DocumentReference<Map<String, dynamic>> _chatRef(String otherUid) {
@@ -52,14 +75,34 @@ Future<void> ensureChatExists(String otherUid) async {
         .snapshots();
   }
 
+  Stream<DocumentSnapshot<Map<String, dynamic>>> chatStream(String otherUid) {
+    return _chatRef(otherUid).snapshots();
+  }
+
   // ---------------- SEEN / UNREAD ----------------
   Future<void> markSeen(String otherUid) async {
-    // Reset unread counter for me
-    await _chatRef(otherUid).set({
-      'unread.$uid': 0,
-      'lastSeen.$uid': FieldValue.serverTimestamp(),
-      'updatedAt': FieldValue.serverTimestamp(),
-    }, SetOptions(merge: true));
+    final chats = await _db
+        .collection('chats')
+        .where('participants', arrayContains: uid)
+        .get();
+
+    final chatBatch = _db.batch();
+    for (final doc in chats.docs) {
+      final data = doc.data();
+      final participants = (data['participants'] as List?)
+              ?.whereType<String>()
+              .toList() ??
+          [];
+      if (!participants.contains(otherUid)) continue;
+
+      final lastMessageAt = data['lastMessageAt'] as Timestamp?;
+      chatBatch.set(doc.reference, {
+        'unread.$uid': 0,
+        'lastSeen.$uid': lastMessageAt ?? Timestamp.now(),
+        'updatedAt': FieldValue.serverTimestamp(),
+      }, SetOptions(merge: true));
+    }
+    await chatBatch.commit();
 
     // Add me into seenBy for recent messages (simple + safe)
     final recent = await _messagesRef(otherUid)
@@ -67,7 +110,7 @@ Future<void> ensureChatExists(String otherUid) async {
         .limit(50)
         .get();
 
-    final batch = _db.batch();
+    final messageBatch = _db.batch();
     for (final doc in recent.docs) {
       final data = doc.data();
       if (data['deleted'] == true) continue;
@@ -75,13 +118,13 @@ Future<void> ensureChatExists(String otherUid) async {
       final seenByRaw = data['seenBy'];
       final List<dynamic> seenBy = (seenByRaw is List) ? seenByRaw : [];
       if (!seenBy.contains(uid)) {
-        batch.update(doc.reference, {
+        messageBatch.update(doc.reference, {
           'seenBy': FieldValue.arrayUnion([uid]),
           'updatedAt': FieldValue.serverTimestamp(),
         });
       }
     }
-    await batch.commit();
+    await messageBatch.commit();
   }
 
   // ---------------- TYPING ----------------
@@ -141,6 +184,7 @@ Future<void> ensureChatExists(String otherUid) async {
     await _chatRef(otherUid).set({
       'lastMessage': t,
       'lastMessageType': 'text',
+      'lastSenderId': uid,
       'lastMessageAt': FieldValue.serverTimestamp(),
       'updatedAt': FieldValue.serverTimestamp(),
       'unread.$otherUid': FieldValue.increment(1),
@@ -187,6 +231,7 @@ Future<void> ensureChatExists(String otherUid) async {
     await _chatRef(otherUid).set({
       'lastMessage': '📷 Photo',
       'lastMessageType': 'image',
+      'lastSenderId': uid,
       'lastMessageAt': FieldValue.serverTimestamp(),
       'updatedAt': FieldValue.serverTimestamp(),
       'unread.$otherUid': FieldValue.increment(1),
@@ -233,6 +278,7 @@ Future<void> ensureChatExists(String otherUid) async {
     await _chatRef(otherUid).set({
       'lastMessage': '🎤 Voice message',
       'lastMessageType': 'voice',
+      'lastSenderId': uid,
       'lastMessageAt': FieldValue.serverTimestamp(),
       'updatedAt': FieldValue.serverTimestamp(),
       'unread.$otherUid': FieldValue.increment(1),
@@ -280,6 +326,7 @@ Future<void> ensureChatExists(String otherUid) async {
     await _chatRef(otherUid).set({
       'lastMessage': '📋 Shared: $listName',
       'lastMessageType': 'list',
+      'lastSenderId': uid,
       'lastMessageAt': FieldValue.serverTimestamp(),
       'updatedAt': FieldValue.serverTimestamp(),
       'unread.$otherUid': FieldValue.increment(1),
