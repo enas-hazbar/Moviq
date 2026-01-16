@@ -390,7 +390,20 @@ class _AddFavoritePageState extends State<AddFavoritePage> {
       'movieId': movie.id,
       'title': movie.title,
       'posterPath': movie.posterPath,
+      'genreIds': movie.genreIds, 
       'addedAt': FieldValue.serverTimestamp(),
+    });
+    
+    await FirebaseFirestore.instance
+         .collection('users')
+         .doc(user.uid)
+         .collection('interactions')
+         .add({
+      'movieId': movie.id,
+      'genreIds': movie.genreIds,
+      'weight': 3,
+      'source': 'favorite',
+      'createdAt': FieldValue.serverTimestamp(),
     });
 
     if (!mounted) return;

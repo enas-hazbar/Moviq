@@ -5,6 +5,7 @@ class Movie {
   final String posterPath;
   final String releaseDate;
   final double rating;
+  final List<int> genreIds;
 
   Movie({
     required this.id,
@@ -13,6 +14,8 @@ class Movie {
     required this.posterPath,
     required this.releaseDate,
     required this.rating,
+    required this.genreIds,
+
   });
 
   factory Movie.fromJson(Map<String, dynamic> json) {
@@ -23,6 +26,8 @@ class Movie {
       posterPath: json['poster_path'] ?? '',
       releaseDate: json['release_date'] ?? '',
       rating: (json['vote_average'] ?? 0).toDouble(),
+      genreIds: List<int>.from(json['genre_ids'] ?? []),
+
     );
   }
 }

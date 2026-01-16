@@ -1,17 +1,21 @@
 import 'package:flutter/material.dart';
+
 import '../services/tmdb_service.dart';
+import '../services/recommendation_service.dart';
 import '../models/movie.dart';
 import '../config/tmdb_config.dart';
+
 import 'movie_details_page.dart';
 import 'chat_page.dart';
 import 'favorites_page.dart';
 import 'profile_page.dart';
 import 'search_page.dart';
-import '../widgets/moviq_scaffold.dart';
-import '../widgets/nav_helpers.dart';
 import 'reviews_page.dart';
 import 'watchlist_page.dart';
 import 'friends_page.dart';
+
+import '../widgets/moviq_scaffold.dart';
+import '../widgets/nav_helpers.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -21,20 +25,27 @@ class HomePage extends StatefulWidget {
 }
 
 class _HomePageState extends State<HomePage> {
-  final TmdbService _service = TmdbService();
+  final TmdbService _tmdbService = TmdbService();
+  final RecommendationService _recommendationService =
+      RecommendationService();
 
   late Future<List<Movie>> _popularMovies;
   late Future<List<Movie>> _upcomingMovies;
+  late Future<List<Movie>> _recommendedMovies;
 
+  bool _showAllRecommended = false;
   bool _showAllPopular = false;
   bool _showAllUpcoming = false;
 
   @override
   void initState() {
     super.initState();
-    _popularMovies = _service.getTrendingMovies();
-    _upcomingMovies = _service.getUpcomingMovies();
+
+    _popularMovies = _tmdbService.getTrendingMovies();
+    _upcomingMovies = _tmdbService.getUpcomingMovies();
+    _recommendedMovies = _recommendationService.getRecommendedForYou();
   }
+
   @override
   Widget build(BuildContext context) {
     return MoviqScaffold(
@@ -60,13 +71,27 @@ class _HomePageState extends State<HomePage> {
             MaterialPageRoute(builder: (_) => const WatchlistPage()),
           );
         }
-        // Films = already here → do nothing
       },
       onBottomTabSelected: (tab) => _handleBottomNav(context, tab),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
         child: Column(
           children: [
+            /// ⭐ RECOMMENDED FOR YOU
+            _Section(
+              title: 'Recommended for You',
+              future: _recommendedMovies,
+              showAll: _showAllRecommended,
+              onToggle: () {
+                setState(() {
+                  _showAllRecommended = !_showAllRecommended;
+                });
+              },
+            ),
+
+            const SizedBox(height: 32),
+
+            /// 🔥 POPULAR
             _Section(
               title: 'Popular This Week',
               future: _popularMovies,
@@ -77,7 +102,10 @@ class _HomePageState extends State<HomePage> {
                 });
               },
             ),
+
             const SizedBox(height: 32),
+
+            /// ⏳ UPCOMING
             _Section(
               title: 'Upcoming Movies',
               future: _upcomingMovies,
@@ -132,11 +160,12 @@ class _Section extends StatelessWidget {
   final bool showAll;
   final VoidCallback onToggle;
 
- @override
+  @override
   Widget build(BuildContext context) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
+        /// HEADER
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
@@ -159,20 +188,37 @@ class _Section extends StatelessWidget {
           ],
         ),
         const SizedBox(height: 12),
+
+        /// MOVIES GRID (2 SATIR)
         FutureBuilder<List<Movie>>(
           future: future,
           builder: (context, snapshot) {
-            if (!snapshot.hasData) {
+            if (snapshot.connectionState == ConnectionState.waiting) {
               return const SizedBox(
                 height: 200,
                 child: Center(child: CircularProgressIndicator()),
               );
             }
- 
-            final movies = snapshot.data!;
+
+            if (snapshot.hasError) {
+              return const Text(
+                'Failed to load movies',
+                style: TextStyle(color: Colors.redAccent),
+              );
+            }
+
+            final movies = snapshot.data ?? [];
+
+            if (movies.isEmpty) {
+              return const Text(
+                'No movies available',
+                style: TextStyle(color: Colors.white70),
+              );
+            }
+
             final visibleMovies =
                 showAll ? movies : movies.take(6).toList();
- 
+
             return GridView.builder(
               shrinkWrap: true,
               physics: const NeverScrollableScrollPhysics(),
@@ -185,7 +231,7 @@ class _Section extends StatelessWidget {
               ),
               itemBuilder: (context, index) {
                 final movie = visibleMovies[index];
- 
+
                 return GestureDetector(
                   onTap: () {
                     Navigator.push(
@@ -200,37 +246,23 @@ class _Section extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Expanded(
-                        child: Stack(
-                          children: [
-                            ClipRRect(
-                              borderRadius: BorderRadius.circular(8),
-                              child: Image.network(
-                                TmdbConfig.imageBaseUrl + movie.posterPath,
-                                fit: BoxFit.cover,
-                                errorBuilder: (_, __, ___) => Container(
-                                  color: Colors.white12,
-                                  alignment: Alignment.center,
-                                  child: const Icon(
-                                    Icons.movie_outlined,
-                                    color: Colors.white38,
-                                    size: 50,
-                                  ),
-                                ),
+                        child: ClipRRect(
+                          borderRadius: BorderRadius.circular(8),
+                          child: Image.network(
+                            TmdbConfig.imageBaseUrl + movie.posterPath,
+                            fit: BoxFit.cover,
+                            errorBuilder: (_, __, ___) => Container(
+                              color: Colors.white12,
+                              alignment: Alignment.center,
+                              child: const Icon(
+                                Icons.movie_outlined,
+                                color: Colors.white38,
+                                size: 40,
                               ),
                             ),
-                            Positioned(
-                              top: 6,
-                              right: 6,
-                              child: FavoriteHeart(
-                                movieId: movie.id,
-                                posterPath: movie.posterPath,
-                                width: 20, // adjust size of heart
-                              ),
-                            ),
-                          ],
+                          ),
                         ),
                       ),
-
                       const SizedBox(height: 6),
                       Text(
                         movie.title,
@@ -253,4 +285,3 @@ class _Section extends StatelessWidget {
     );
   }
 }
- 

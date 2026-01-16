@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'auth_service.dart';
 import 'register_page.dart';
 import 'auth_widgets.dart';
+
 import 'package:moviq/screen/home_page.dart';
 
 class LoginPage extends StatefulWidget {
@@ -17,7 +18,8 @@ class _LoginPageState extends State<LoginPage> {
   final _email = TextEditingController();
   final _password = TextEditingController();
 
-  void _navigateToHome() {
+  Future<void> _goHome() async {
+    if (!mounted) return;
     Navigator.pushReplacement(
       context,
       MaterialPageRoute(builder: (_) => const HomePage()),
@@ -27,7 +29,9 @@ class _LoginPageState extends State<LoginPage> {
   Future<void> _signInWithGoogle() async {
     try {
       final user = await _authService.signInWithGoogle();
-      if (user != null) _navigateToHome();
+      if (user != null) {
+        await _goHome();
+      }
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -41,7 +45,9 @@ class _LoginPageState extends State<LoginPage> {
   Future<void> _signInWithApple() async {
     try {
       final user = await _authService.signInWithApple();
-      if (user != null) _navigateToHome();
+      if (user != null) {
+        await _goHome();
+      }
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -58,7 +64,9 @@ class _LoginPageState extends State<LoginPage> {
         email: _email.text.trim(),
         password: _password.text.trim(),
       );
-      if (user != null) _navigateToHome();
+      if (user != null) {
+        await _goHome();
+      }
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -69,104 +77,92 @@ class _LoginPageState extends State<LoginPage> {
     }
   }
 
- @override
-Widget build(BuildContext context) {
-  return Scaffold(
-    backgroundColor: Colors.black,
-    body: SafeArea(
-      child: SingleChildScrollView(
-        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.center,
-          children: [
-            // Logo
-            const Text(
-              "MOVIQ",
-              style: TextStyle(
-                fontSize: 28,
-                letterSpacing: 6,
-                fontWeight: FontWeight.bold,
-                color: Colors.white,
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: Colors.black,
+      body: SafeArea(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              const Text(
+                "MOVIQ",
+                style: TextStyle(
+                  fontSize: 28,
+                  letterSpacing: 6,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.white,
+                ),
               ),
-            ),
-            const SizedBox(height: 12),
-
-            // Poster Image
-            ClipRRect(
-              borderRadius: BorderRadius.circular(12),
-              child: Image.asset(
-                "assets/psycho.jpg",
-                height: 200,
-                fit: BoxFit.cover,
+              const SizedBox(height: 12),
+              ClipRRect(
+                borderRadius: BorderRadius.circular(12),
+                child: Image.asset(
+                  "assets/psycho.jpg",
+                  height: 200,
+                  fit: BoxFit.cover,
+                ),
               ),
-            ),
-            const SizedBox(height: 12),
-
-            // Title
-            const Text(
-              "Sign in to Moviq",
-              style: TextStyle(
-                fontSize: 24,
-                fontFamily: "Serif",
-                color: Colors.white70,
+              const SizedBox(height: 12),
+              const Text(
+                "Sign in to Moviq",
+                style: TextStyle(
+                  fontSize: 24,
+                  fontFamily: "Serif",
+                  color: Colors.white70,
+                ),
               ),
-            ),
-            const SizedBox(height: 20),
-
-            // Input Panel
-            Container(
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: panelColor,
-                borderRadius: BorderRadius.circular(8),
+              const SizedBox(height: 20),
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: panelColor,
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Column(
+                  children: [
+                    TextField(
+                      controller: _email,
+                      style: const TextStyle(color: Colors.white),
+                      decoration: authInput("Email"),
+                    ),
+                    const SizedBox(height: 12),
+                    TextField(
+                      controller: _password,
+                      obscureText: true,
+                      style: const TextStyle(color: Colors.white),
+                      decoration: authInput("Password"),
+                    ),
+                  ],
+                ),
               ),
-              child: Column(
-                children: [
-                  TextField(
-                    controller: _email,
-                    style: const TextStyle(color: Colors.white),
-                    decoration: authInput("Email"),
-                  ),
-                  const SizedBox(height: 12),
-                  TextField(
-                    controller: _password,
-                    obscureText: true,
-                    style: const TextStyle(color: Colors.white),
-                    decoration: authInput("Password"),
-                  ),
-                ],
+              const SizedBox(height: 20),
+              authButton("Login", _signInWithEmail),
+              const SizedBox(height: 12),
+              const Text("or", style: TextStyle(color: Colors.white70)),
+              const SizedBox(height: 12),
+              authButton("Sign in with Google", _signInWithGoogle),
+              const SizedBox(height: 8),
+              authButton("Sign in with Apple", _signInWithApple),
+              const SizedBox(height: 16),
+              TextButton(
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => const RegisterPage()),
+                  );
+                },
+                child: const Text(
+                  "Don't have an account? Register",
+                  style: TextStyle(color: Colors.white70),
+                ),
               ),
-            ),
-            const SizedBox(height: 20),
-
-            authButton("Login", _signInWithEmail),
-            const SizedBox(height: 12),
-
-            const Text("or", style: TextStyle(color: Colors.white70)),
-            const SizedBox(height: 12),
-
-            authButton("Sign in with Google", _signInWithGoogle),
-            const SizedBox(height: 8),
-            authButton("Sign in with Apple", _signInWithApple),
-
-            const SizedBox(height: 16),
-
-            TextButton(
-              onPressed: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (_) => const RegisterPage()),
-                );
-              },
-              child: const Text(
-                "Don't have an account? Register",
-                style: TextStyle(color: Colors.white70),
-              ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
-    ),
-  );
+    );
   }
 }

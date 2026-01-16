@@ -35,7 +35,7 @@ class DefaultFirebaseOptions {
     messagingSenderId: '191698003540',
     projectId: 'moviq-1cbf7',
     authDomain: 'moviq-1cbf7.firebaseapp.com',
-    storageBucket: 'moviq-1cbf7.appspot.com',
+    storageBucket: 'moviq-1cbf7.firebasestorage.app',
     measurementId: 'G-WFELLGCHDY',
   );
 
@@ -44,7 +44,7 @@ class DefaultFirebaseOptions {
     appId: '1:191698003540:android:c0620122b1d00f8f0befc1',
     messagingSenderId: '191698003540',
     projectId: 'moviq-1cbf7',
-    storageBucket: 'moviq-1cbf7.appspot.com',
+    storageBucket: 'moviq-1cbf7.firebasestorage.app',
   );
 
   static const FirebaseOptions ios = FirebaseOptions(
@@ -52,7 +52,7 @@ class DefaultFirebaseOptions {
     appId: '1:191698003540:ios:f2f268f20d6d5e7e0befc1',
     messagingSenderId: '191698003540',
     projectId: 'moviq-1cbf7',
-    storageBucket: 'moviq-1cbf7.appspot.com',
+    storageBucket: 'moviq-1cbf7.firebasestorage.app',
     iosClientId: '191698003540-3k0vslrvngsug9mntmungqph4hvbgije.apps.googleusercontent.com',
     iosBundleId: 'com.example.moviq',
   );
@@ -62,7 +62,7 @@ class DefaultFirebaseOptions {
     appId: '1:191698003540:ios:f2f268f20d6d5e7e0befc1',
     messagingSenderId: '191698003540',
     projectId: 'moviq-1cbf7',
-    storageBucket: 'moviq-1cbf7.appspot.com',
+    storageBucket: 'moviq-1cbf7.firebasestorage.app',
     iosClientId: '191698003540-3k0vslrvngsug9mntmungqph4hvbgije.apps.googleusercontent.com',
     iosBundleId: 'com.example.moviq',
   );
@@ -73,7 +73,7 @@ class DefaultFirebaseOptions {
     messagingSenderId: '191698003540',
     projectId: 'moviq-1cbf7',
     authDomain: 'moviq-1cbf7.firebaseapp.com',
-    storageBucket: 'moviq-1cbf7.appspot.com',
+    storageBucket: 'moviq-1cbf7.firebasestorage.app',
     measurementId: 'G-3MTF2CF61F',
   );
 
