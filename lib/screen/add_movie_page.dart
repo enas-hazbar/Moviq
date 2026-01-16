@@ -42,9 +42,7 @@ class _AddMoviePageState extends State<AddMoviePage> {
 
                 Expanded(
                   child: _loading
-                      ? const Center(
-                          child: CircularProgressIndicator(),
-                        )
+                      ? const Center(child: CircularProgressIndicator())
                       : _results.isEmpty
                           ? const Center(
                               child: Text(
@@ -91,7 +89,7 @@ class _AddMoviePageState extends State<AddMoviePage> {
     );
   }
 
-  // 🎬 MOVIE ROW WITH ADD BUTTON
+  // 🎬 MOVIE ROW
   Widget _movieRow(Movie movie) {
     final posterUrl = movie.posterPath.isEmpty
         ? null
@@ -101,7 +99,6 @@ class _AddMoviePageState extends State<AddMoviePage> {
       padding: const EdgeInsets.symmetric(vertical: 6),
       child: Row(
         children: [
-          // Poster
           ClipRRect(
             borderRadius: BorderRadius.circular(4),
             child: posterUrl == null
@@ -122,20 +119,15 @@ class _AddMoviePageState extends State<AddMoviePage> {
 
           const SizedBox(width: 12),
 
-          // Title
           Expanded(
             child: Text(
               movie.title,
-              style: const TextStyle(
-                color: Colors.white,
-                fontSize: 15,
-              ),
+              style: const TextStyle(color: Colors.white, fontSize: 15),
               maxLines: 2,
               overflow: TextOverflow.ellipsis,
             ),
           ),
 
-          // ➕ ADD BUTTON
           IconButton(
             icon: const Icon(Icons.add, color: _pink),
             onPressed: () => _addToWatchlist(movie),
@@ -145,7 +137,7 @@ class _AddMoviePageState extends State<AddMoviePage> {
     );
   }
 
-  // 🔎 SEARCH LOGIC
+  // 🔎 SEARCH
   Future<void> _searchMovies() async {
     final query = _controller.text.trim();
     if (query.isEmpty) return;
@@ -161,10 +153,11 @@ class _AddMoviePageState extends State<AddMoviePage> {
     });
   }
 
-  // ⭐ ADD TO WATCHLIST
+  // ⭐ ADD TO WATCHLIST + AI INTERACTION
   Future<void> _addToWatchlist(Movie movie) async {
     final uid = FirebaseAuth.instance.currentUser!.uid;
 
+    // 1️⃣ WATCHLIST
     await FirebaseFirestore.instance
         .collection('users')
         .doc(uid)
@@ -174,11 +167,25 @@ class _AddMoviePageState extends State<AddMoviePage> {
       'movieId': movie.id,
       'title': movie.title,
       'posterPath': movie.posterPath,
+      'genreIds': movie.genreIds,
       'addedAt': FieldValue.serverTimestamp(),
     });
 
+    // 2️⃣ AI INTERACTION (🔥 ASIL OLAY)
+    await FirebaseFirestore.instance
+        .collection('users')
+        .doc(uid)
+        .collection('interactions')
+        .add({
+      'movieId': movie.id,
+      'genreIds': movie.genreIds,
+      'weight': 2,
+      'source': 'watchlist',
+      'createdAt': FieldValue.serverTimestamp(),
+    });
+
     if (!mounted) return;
-  Navigator.pop(context);
+    Navigator.pop(context);
 
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(

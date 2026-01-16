@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'auth_service.dart';
 import 'register_page.dart';
 import 'auth_widgets.dart';
+
 import 'package:moviq/screen/home_page.dart';
 
 class LoginPage extends StatefulWidget {
@@ -17,7 +18,8 @@ class _LoginPageState extends State<LoginPage> {
   final _email = TextEditingController();
   final _password = TextEditingController();
 
-  void _navigateToHome() {
+  Future<void> _goHome() async {
+    if (!mounted) return;
     Navigator.pushReplacement(
       context,
       MaterialPageRoute(builder: (_) => const HomePage()),
@@ -27,7 +29,9 @@ class _LoginPageState extends State<LoginPage> {
   Future<void> _signInWithGoogle() async {
     try {
       final user = await _authService.signInWithGoogle();
-      if (user != null) _navigateToHome();
+      if (user != null) {
+        await _goHome();
+      }
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -44,7 +48,9 @@ class _LoginPageState extends State<LoginPage> {
         email: _email.text.trim(),
         password: _password.text.trim(),
       );
-      if (user != null) _navigateToHome();
+      if (user != null) {
+        await _goHome();
+      }
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
