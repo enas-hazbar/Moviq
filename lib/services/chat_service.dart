@@ -36,11 +36,8 @@ Future<void> ensureChatExists(String otherUid) async {
     'lastMessageAt': FieldValue.serverTimestamp(),
     'updatedAt': FieldValue.serverTimestamp(),
     'lastSeen': {},
-  }, SetOptions(merge: true)); // 🔑 important
+  }, SetOptions(merge: true)); 
 }
-
-
-  // ---------------- STREAMS ----------------
   Stream<QuerySnapshot<Map<String, dynamic>>> messagesStream(String otherUid) {
     return _messagesRef(otherUid)
         .orderBy('createdAt', descending: false)
