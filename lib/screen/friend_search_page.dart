@@ -136,7 +136,7 @@ class _FriendSearchPageState extends State<FriendSearchPage> {
             const SizedBox(height: 12),
             TextField(
               controller: _queryController,
-              onChanged: (value) => setState(() => _query = value.trim()),
+              onChanged: (value) => setState(() => _query = value.trim().toLowerCase()),
               style: const TextStyle(color: Colors.white),
               decoration: InputDecoration(
                 hintText: 'Search by username',

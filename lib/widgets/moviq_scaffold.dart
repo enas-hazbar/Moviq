@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import '../services/chat_service.dart';
+import '../services/chats_service.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
 enum MoviqTopTab { films, reviews, friends, list }
@@ -225,7 +225,7 @@ class _ChatsBottomIcon extends StatelessWidget {
     }
 
     var total = 0;
-    final activeChatId = ChatService.activeChatId.value;
+    final activeChatId = ChatsService.activeChatId.value;
     for (final entry in deduped.entries) {
       final key = entry.key;
       final d = entry.value;
@@ -283,7 +283,7 @@ class _ChatsBottomIcon extends StatelessWidget {
     }
 
     return ValueListenableBuilder<String?>(
-      valueListenable: ChatService.activeChatId,
+      valueListenable: ChatsService.activeChatId,
       builder: (context, _, __) {
         return StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
           stream: FirebaseFirestore.instance

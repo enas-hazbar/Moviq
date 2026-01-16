@@ -2,13 +2,13 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
-import '../services/chat_service.dart';
+import '../services/chats_service.dart';
 import 'chat_room_page.dart';
 
 class ChatPage extends StatelessWidget {
   ChatPage({super.key});
 
-  final chatService = ChatService();
+  final chatService = ChatsService();
 
   @override
   Widget build(BuildContext context) {

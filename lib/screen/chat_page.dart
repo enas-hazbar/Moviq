@@ -4,7 +4,6 @@ import '../services/chat_service.dart';
 import '../widgets/moviq_scaffold.dart';
 import '../widgets/nav_helpers.dart';
 import 'chats_page.dart';
-
 import 'home_page.dart';
 import 'search_page.dart';
 import 'favorites_page.dart';

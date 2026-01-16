@@ -8,7 +8,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:record/record.dart';
 import 'package:just_audio/just_audio.dart';
-import '../services/chat_service.dart';
+import '../services/chats_service.dart';
 import 'shared_list_details_page.dart';
 import 'shared_spical_page.dart';
 import '../widgets/chat_list_preview.dart';
@@ -24,7 +24,7 @@ class ChatRoomPage extends StatefulWidget {
 class _ChatRoomPageState extends State<ChatRoomPage> {
   DateTime? _lastTapTime;
 static const _doubleTapDelay = Duration(milliseconds: 300);
-  final _chat = ChatService();
+  final _chat = ChatsService();
   final _controller = TextEditingController();
   final _scrollController = ScrollController();
   final _focusNode = FocusNode();

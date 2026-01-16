@@ -120,12 +120,6 @@ class _SettingsPageState extends State<SettingsPage> {
                 final data = snapshot.data?.data();
                 final username = data?['username'];
 
-                /// ✅ initialize ONCE, never overwrite
-                if (!_usernameInitialized && username != null) {
-                  _usernameController.text = username;
-                  _usernameInitialized = true;
-                }
-
                 return _InfoPanel(
                   email: FirebaseAuth.instance.currentUser?.email,
                   usernameController: _usernameController,
@@ -308,31 +302,35 @@ class _SettingsPageState extends State<SettingsPage> {
     final usernameRef = db.collection('usernames').doc(newUsername);
 
     try {
-      await db.runTransaction((tx) async {
+ await db.runTransaction((tx) async {
         final userSnap = await tx.get(userRef);
-        final oldUsername = userSnap.data()?['username'] as String?;
+        final oldUsername = userSnap.data()?['username'];
 
-        // Get the new username doc
+        if (!userSnap.exists) {
+          tx.set(userRef, {
+            'createdAt': FieldValue.serverTimestamp(),
+          });
+        }
+
         final snap = await tx.get(usernameRef);
-        final existingUid = snap.data()?['uid'] as String?;
 
-        // Check if the new username is taken by someone else
-        if (snap.exists && existingUid != null && existingUid != user.uid) {
+        if (snap.exists && snap.data()?['uid'] != user.uid) {
           throw Exception('TAKEN');
         }
 
-        // Delete the old username doc if it exists and is different
         if (oldUsername != null && oldUsername != newUsername) {
-          final oldRef = db.collection('usernames').doc(oldUsername);
-          tx.delete(oldRef);
+          tx.delete(db.collection('usernames').doc(oldUsername));
         }
 
-        // Set the new username doc
         tx.set(usernameRef, {'uid': user.uid});
-
-        // Update user profile
         tx.set(userRef, {'username': newUsername}, SetOptions(merge: true));
       });
+
+        setState(() {
+          _username = newUsername;
+          _usernameController.text = newUsername; // 🔑 REQUIRED
+          _usernameInitialized = true;
+        });
 
       setState(() {
         _username = newUsername;

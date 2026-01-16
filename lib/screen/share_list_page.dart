@@ -1,7 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
-import '../services/chat_service.dart'; 
+import '../services/chats_service.dart'; 
 class ShareListPage extends StatelessWidget {
   final String listType; // watchlist | watched | custom
   final String listName;
@@ -43,7 +43,7 @@ class ShareListPage extends StatelessWidget {
                 title: Text(name),
                 trailing: const Icon(Icons.send),
                 onTap: () async {
-                  await ChatService().sendList(
+                  await ChatsService().sendList(
                     otherUid: friend.id,
                     listType: listType,
                     listId: listId, // null for watchlist/watched

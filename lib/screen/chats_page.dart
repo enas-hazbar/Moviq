@@ -3,7 +3,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../widgets/moviq_scaffold.dart';
 import '../widgets/nav_helpers.dart';
-import '../services/chat_service.dart';
+import '../services/chats_service.dart';
 import 'home_page.dart';
 import 'search_page.dart';
 import 'chat_page.dart';
@@ -29,7 +29,7 @@ class _ChatsPageState extends State<ChatsPage> {
     participants.sort();
     final key = participants.join('_');
 
-    final activeChatId = ChatService.activeChatId.value;
+    final activeChatId = ChatsService.activeChatId.value;
     if (activeChatId != null && activeChatId == key) {
       return false;
     }
@@ -88,13 +88,13 @@ void initState() {
       if (mounted) setState(() {});
     });
   };
-  ChatService.activeChatId.addListener(_activeChatListener!);
+  ChatsService.activeChatId.addListener(_activeChatListener!);
 }
 
 @override
 void dispose() {
   if (_activeChatListener != null) {
-    ChatService.activeChatId.removeListener(_activeChatListener!);
+    ChatsService.activeChatId.removeListener(_activeChatListener!);
   }
   super.dispose();
 }
@@ -124,7 +124,7 @@ Future<void> _fixOldChats() async {
   Widget build(BuildContext context) {
 
     final me = FirebaseAuth.instance.currentUser!.uid;
-    final chatService = ChatService();
+    final chatService = ChatsService();
 
     return MoviqScaffold(
       currentBottomTab: MoviqBottomTab.chats,
