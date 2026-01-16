@@ -20,6 +20,48 @@ class ChatsPage extends StatefulWidget {
 
 class _ChatsPageState extends State<ChatsPage> {
   String _query = '';
+  VoidCallback? _activeChatListener;
+  bool _hasUnread(String chatId, Map<String, dynamic> data, String me) {
+    final participants = (data['participants'] as List?)
+            ?.whereType<String>()
+            .toList() ??
+        [];
+    participants.sort();
+    final key = participants.join('_');
+
+    final activeChatId = ChatService.activeChatId.value;
+    if (activeChatId != null && activeChatId == key) {
+      return false;
+    }
+    final lastMessageAt = data['lastMessageAt'] as Timestamp?;
+    final lastSeenRaw = data['lastSeen'];
+    final lastSeen = (lastSeenRaw is Map) ? lastSeenRaw[me] as Timestamp? : null;
+    if (lastMessageAt != null &&
+        lastSeen != null &&
+        lastSeen.compareTo(lastMessageAt) >= 0) {
+      return false;
+    }
+
+    final unreadRaw = data['unread'];
+    if (unreadRaw is Map) {
+      final val = unreadRaw[me];
+      if (val is num && val.toInt() > 0) return true;
+      if (val is String && int.tryParse(val) != null && int.parse(val) > 0) {
+        return true;
+      }
+    } else if (unreadRaw is num && unreadRaw.toInt() > 0) {
+      return true;
+    }
+
+    final lastSenderId = data['lastSenderId'];
+    if (lastSenderId is String && lastSenderId != me) {
+      if (lastMessageAt != null &&
+          (lastSeen == null || lastSeen.compareTo(lastMessageAt) < 0)) {
+        return true;
+      }
+    }
+    return false;
+  }
 String timeAgo(Timestamp? ts) {
   if (ts == null) return '';
 
@@ -40,6 +82,21 @@ String timeAgo(Timestamp? ts) {
 void initState() {
   super.initState();
   _fixOldChats();
+  _activeChatListener = () {
+    if (!mounted) return;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) setState(() {});
+    });
+  };
+  ChatService.activeChatId.addListener(_activeChatListener!);
+}
+
+@override
+void dispose() {
+  if (_activeChatListener != null) {
+    ChatService.activeChatId.removeListener(_activeChatListener!);
+  }
+  super.dispose();
 }
 
 Future<void> _fixOldChats() async {
@@ -83,7 +140,7 @@ Future<void> _fixOldChats() async {
           /// 🔹 Collect users that already have chats
           final activeChatUserIds = <String>{};
           final allChats = chatSnap.data!.docs;
-          final chats = allChats.where((doc) {
+          final filtered = allChats.where((doc) {
             if (_query.isEmpty) return true;
 
             final data = doc.data();
@@ -92,6 +149,38 @@ Future<void> _fixOldChats() async {
 
             return lastMsg.contains(_query);
           }).toList();
+
+          final deduped = <String, QueryDocumentSnapshot<Map<String, dynamic>>>{};
+          for (final doc in filtered) {
+            final data = doc.data();
+            final participants = (data['participants'] as List?)
+                    ?.whereType<String>()
+                    .toList() ??
+                [];
+            if (participants.isEmpty) continue;
+            participants.sort();
+            final key = participants.join('_');
+
+            final existing = deduped[key];
+            if (existing == null) {
+              deduped[key] = doc;
+            } else {
+              final existingData = existing.data();
+              final existingAt =
+                  (existingData['lastMessageAt'] as Timestamp?) ??
+                      (existingData['updatedAt'] as Timestamp?);
+              final currentAt = (data['lastMessageAt'] as Timestamp?) ??
+                  (data['updatedAt'] as Timestamp?);
+              if ((currentAt?.millisecondsSinceEpoch ?? 0) >
+                  (existingAt?.millisecondsSinceEpoch ?? 0)) {
+                deduped[key] = doc;
+              } else if (doc.id == key) {
+                deduped[key] = doc;
+              }
+            }
+          }
+
+          final chats = deduped.values.toList();
 
           for (final doc in chats) {
             final participants = (doc['participants'] as List?)
@@ -158,8 +247,7 @@ Future<void> _fixOldChats() async {
                         return const SizedBox.shrink();
                       }
 
-                      final unread =
-                          (data['unread']?[me] as int?) ?? 0;
+                      final hasUnread = _hasUnread(chats[i].id, data, me);
 
                       return StreamBuilder<
                           DocumentSnapshot<Map<String, dynamic>>>(
@@ -206,7 +294,7 @@ Future<void> _fixOldChats() async {
                                   ),
                                 ),
                                 const SizedBox(height: 4),
-                                if (unread > 0)
+                                if (hasUnread)
                                   Container(
                                     width: 8,
                                     height: 8,

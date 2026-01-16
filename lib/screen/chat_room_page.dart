@@ -43,6 +43,9 @@ static const _doubleTapDelay = Duration(milliseconds: 300);
   Timer? _recordTimer;
 
   late final VoicePlaybackController _voiceController;
+  StreamSubscription<QuerySnapshot<Map<String, dynamic>>>? _messagesSub;
+  StreamSubscription<DocumentSnapshot<Map<String, dynamic>>>? _chatSub;
+  bool _markingSeen = false;
 
   late final String me;
   late final String other;
@@ -58,12 +61,48 @@ static const _doubleTapDelay = Duration(milliseconds: 300);
     _voiceController = VoicePlaybackController();
 
     WidgetsBinding.instance.addPostFrameCallback((_) async {
+      _chat.setActiveChat(other);
       await _chat.markSeen(other);
+    });
+
+    _messagesSub = _chat.messagesStream(other).listen((snap) async {
+      if (_markingSeen || snap.docs.isEmpty) return;
+      final last = snap.docs.last.data();
+      if ((last['senderId'] ?? '') == me) return;
+      _markingSeen = true;
+      try {
+        await _chat.markSeen(other);
+      } finally {
+        _markingSeen = false;
+      }
+    });
+
+    _chatSub = _chat.chatStream(other).listen((snap) async {
+      final data = snap.data();
+      if (data == null || _markingSeen) return;
+      final lastSenderId = data['lastSenderId'];
+      if (lastSenderId is String && lastSenderId != me) {
+        final lastMessageAt = data['lastMessageAt'] as Timestamp?;
+        final lastSeenRaw = data['lastSeen'];
+        final lastSeen = (lastSeenRaw is Map) ? lastSeenRaw[me] as Timestamp? : null;
+        if (lastMessageAt != null &&
+            (lastSeen == null || lastSeen.compareTo(lastMessageAt) < 0)) {
+          _markingSeen = true;
+          try {
+            await _chat.markSeen(other);
+          } finally {
+            _markingSeen = false;
+          }
+        }
+      }
     });
   }
 
   @override
   void dispose() {
+    _chat.setActiveChat(null);
+    _messagesSub?.cancel();
+    _chatSub?.cancel();
     _recordTimer?.cancel();
     _recorder.dispose();
     _controller.dispose();

@@ -194,11 +194,77 @@ class _ChatsBottomIcon extends StatelessWidget {
   final VoidCallback? onTap;
 
   int _totalUnreadForMe(List<QueryDocumentSnapshot<Map<String, dynamic>>> docs, String me) {
-    var total = 0;
+    final deduped = <String, QueryDocumentSnapshot<Map<String, dynamic>>>{};
     for (final d in docs) {
       final data = d.data();
-      final unread = (data['unread'] is Map) ? Map<String, dynamic>.from(data['unread']) : {};
-      total += (unread[me] as num?)?.toInt() ?? 0;
+      final participants = (data['participants'] as List?)
+              ?.whereType<String>()
+              .toList() ??
+          [];
+      if (participants.isEmpty) continue;
+      participants.sort();
+      final key = participants.join('_');
+
+      final existing = deduped[key];
+      if (existing == null) {
+        deduped[key] = d;
+      } else {
+        final existingData = existing.data();
+        final existingAt = (existingData['lastMessageAt'] as Timestamp?) ??
+            (existingData['updatedAt'] as Timestamp?);
+        final currentAt =
+            (data['lastMessageAt'] as Timestamp?) ??
+                (data['updatedAt'] as Timestamp?);
+        if ((currentAt?.millisecondsSinceEpoch ?? 0) >
+            (existingAt?.millisecondsSinceEpoch ?? 0)) {
+          deduped[key] = d;
+        } else if (d.id == key) {
+          deduped[key] = d;
+        }
+      }
+    }
+
+    var total = 0;
+    final activeChatId = ChatService.activeChatId.value;
+    for (final entry in deduped.entries) {
+      final key = entry.key;
+      final d = entry.value;
+      if (activeChatId != null && activeChatId == key) {
+        continue;
+      }
+      final data = d.data();
+      final lastMessageAt = data['lastMessageAt'] as Timestamp?;
+      final lastSeenRaw = data['lastSeen'];
+      final lastSeen =
+          (lastSeenRaw is Map) ? lastSeenRaw[me] as Timestamp? : null;
+      if (lastMessageAt != null &&
+          lastSeen != null &&
+          lastSeen.compareTo(lastMessageAt) >= 0) {
+        continue;
+      }
+
+      final unreadRaw = data['unread'];
+      var unreadCount = 0;
+      if (unreadRaw is Map) {
+        final unread = Map<String, dynamic>.from(unreadRaw);
+        final val = unread[me];
+        unreadCount = (val is num)
+            ? val.toInt()
+            : (val is String ? int.tryParse(val) ?? 0 : 0);
+      } else if (unreadRaw is num) {
+        unreadCount = unreadRaw.toInt();
+      }
+
+      if (unreadCount <= 0) {
+        final lastSenderId = data['lastSenderId'];
+        if (lastSenderId is String && lastSenderId != me) {
+          unreadCount = 1;
+        }
+      }
+
+      if (unreadCount > 0) {
+        total += unreadCount;
+      }
     }
     return total;
   }
@@ -216,35 +282,55 @@ class _ChatsBottomIcon extends StatelessWidget {
       );
     }
 
-    return StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
-      stream: ChatService().myChats(),
-      builder: (context, snap) {
-        final totalUnread = snap.hasData ? _totalUnreadForMe(snap.data!.docs, me) : 0;
-        final showDot = totalUnread > 0;
+    return ValueListenableBuilder<String?>(
+      valueListenable: ChatService.activeChatId,
+      builder: (context, _, __) {
+        return StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
+          stream: FirebaseFirestore.instance
+              .collection('chats')
+              .where('participants', arrayContains: me)
+              .snapshots(),
+          builder: (context, snap) {
+            final totalUnread =
+                snap.hasData ? _totalUnreadForMe(snap.data!.docs, me) : 0;
+            final showBadge = totalUnread > 0;
+            final badgeText = totalUnread > 99 ? '99+' : totalUnread.toString();
 
-        return Stack(
-          clipBehavior: Clip.none,
-          children: [
-            _BottomIcon(
-              assetPath: assetPath,
-              isActive: isActive,
-              onTap: onTap,
-            ),
-
-            if (showDot)
-              Positioned(
-                right: 6,
-                top: 6,
-                child: Container(
-                  width: 10,
-                  height: 10,
-                  decoration: const BoxDecoration(
-                    color: Color(0xFFE5A3A3),
-                    shape: BoxShape.circle,
-                  ),
+            return Stack(
+              clipBehavior: Clip.none,
+              children: [
+                _BottomIcon(
+                  assetPath: assetPath,
+                  isActive: isActive,
+                  onTap: onTap,
                 ),
-              ),
-          ],
+
+                if (showBadge)
+                  Positioned(
+                    right: -2,
+                    top: -2,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFE5A3A3),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: Colors.black, width: 1),
+                      ),
+                      constraints: const BoxConstraints(minWidth: 18),
+                      child: Text(
+                        badgeText,
+                        textAlign: TextAlign.center,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 10,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ),
+                  ),
+              ],
+            );
+          },
         );
       },
     );
