@@ -137,7 +137,7 @@ Future<void> _fixOldChats() async {
             return const Center(child: CircularProgressIndicator());
           }
 
-          /// 🔹 Collect users that already have chats
+          ///  Collect users that already have chats
           final activeChatUserIds = <String>{};
           final allChats = chatSnap.data!.docs;
           final filtered = allChats.where((doc) {
@@ -197,7 +197,7 @@ Future<void> _fixOldChats() async {
 
           return Column(
             children: [
-              /// 🔍 Search (UI only for now)
+              /// Search 
               Padding(
                 padding: const EdgeInsets.all(12),
                 child: TextField(
@@ -218,7 +218,7 @@ Future<void> _fixOldChats() async {
 
               ),
 
-              /// 📥 MESSAGES
+              /// MESSAGES
               const _SectionTitle('Messages'),
             SizedBox(
             height: 260,
@@ -321,7 +321,7 @@ Future<void> _fixOldChats() async {
                   ),
           ),
 
-              /// 👥 FRIENDS (ONLY friends without chats)
+              /// FRIENDS (ONLY friends without chats)
               const _SectionTitle('Friends'),
               Expanded(
                 child: StreamBuilder<

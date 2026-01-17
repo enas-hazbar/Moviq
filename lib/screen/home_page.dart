@@ -78,7 +78,7 @@ class _HomePageState extends State<HomePage> {
         padding: const EdgeInsets.all(16),
         child: Column(
           children: [
-            /// ⭐ RECOMMENDED FOR YOU
+            /// RECOMMENDED FOR YOU
             _Section(
               title: 'Recommended for You',
               future: _recommendedMovies,
@@ -92,7 +92,7 @@ class _HomePageState extends State<HomePage> {
 
             const SizedBox(height: 32),
 
-            /// 🔥 POPULAR
+            /// POPULAR
             _Section(
               title: 'Popular This Week',
               future: _popularMovies,
@@ -106,7 +106,7 @@ class _HomePageState extends State<HomePage> {
 
             const SizedBox(height: 32),
 
-            /// ⏳ UPCOMING
+            /// UPCOMING
             _Section(
               title: 'Upcoming Movies',
               future: _upcomingMovies,

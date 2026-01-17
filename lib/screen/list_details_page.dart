@@ -48,7 +48,7 @@ class ListDetailsPage extends StatelessWidget {
       ),
       body: Stack(
         children: [
-          // ✅ GRID (StreamBuilder)
+          // GRID (StreamBuilder)
           StreamBuilder<QuerySnapshot>(
             stream: FirebaseFirestore.instance
                 .collection('users')
@@ -127,7 +127,7 @@ class ListDetailsPage extends StatelessWidget {
                         ),
                       ),
 
-                      // ✅ REMOVE BUTTON
+                      // REMOVE BUTTON
                       Positioned(
                         top: 6,
                         right: 6,
@@ -164,7 +164,7 @@ class ListDetailsPage extends StatelessWidget {
             },
           ),
 
-          // ✅ CENTERED ADD BUTTON
+          //  CENTERED ADD BUTTON
           Positioned(
             bottom: 20,
             left: 0,

@@ -253,7 +253,7 @@ Widget _header() {
     ),
     child: Row(
       children: [
-        // 🔁 Tabs (center)
+        // Tabs (center)
         Expanded(
           child: Row(
             mainAxisAlignment: MainAxisAlignment.center,

@@ -108,7 +108,6 @@ class _MovieDetailsPageState extends State<MovieDetailsPage> {
             'viewedAt': FieldValue.serverTimestamp(),
           }, SetOptions(merge: true));
     } catch (_) {
-      // Ignore permission errors.
     }
   }
 
@@ -265,7 +264,7 @@ class _MovieDetailsPageState extends State<MovieDetailsPage> {
         .collection('users')
         .doc(user.uid);
 
-    // 1️⃣ Add to watched
+    //  Add to watched
     await userRef.collection('watched').doc(movieId.toString()).set({
       'movieId': movieId,
       'title': title,
@@ -273,7 +272,7 @@ class _MovieDetailsPageState extends State<MovieDetailsPage> {
       'watchedAt': FieldValue.serverTimestamp(),
     });
 
-    // 2️⃣ Remove from watchlist (if exists)
+    // Remove from watchlist (if exists)
     await userRef.collection('watchlist').doc(movieId.toString()).delete();
   }
 
@@ -1104,7 +1103,7 @@ class FavoriteHeart extends StatelessWidget {
           padding: const EdgeInsets.all(6),
           decoration: BoxDecoration(
             shape: BoxShape.circle,
-            color: Colors.black.withOpacity(0.45), // 👈 works on white & black posters
+            color: Colors.black.withOpacity(0.45), 
             boxShadow: const [
               BoxShadow(
                 color: Colors.black26,

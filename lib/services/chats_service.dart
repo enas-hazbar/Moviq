@@ -103,7 +103,7 @@ Future<void> ensureChatExists(String otherUid) async {
     }
     await chatBatch.commit();
 
-    // Add me into seenBy for recent messages (simple + safe)
+    // Add me into seenBy for recent messages 
     final recent = await _messagesRef(otherUid)
         .orderBy('createdAt', descending: true)
         .limit(50)
@@ -287,8 +287,8 @@ Future<void> ensureChatExists(String otherUid) async {
   // ---------------- SEND: LIST (custom / watchlist / watched) ----------------
   Future<void> sendList({
     required String otherUid,
-    required String listType, // 'custom' | 'watchlist' | 'watched'
-    String? listId, // only for custom
+    required String listType, 
+    String? listId, 
     required String listName,
     String? replyToId,
     String? replyToText,
@@ -363,7 +363,7 @@ Future<void> ensureChatExists(String otherUid) async {
     }, SetOptions(merge: true));
   }
 
-  // ---------------- DELETE (soft delete + delete stored file) ----------------
+  // ---------------- DELETE ----------------
   Future<void> deleteMessage({
     required String otherUid,
     required String messageId,

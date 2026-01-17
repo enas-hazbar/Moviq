@@ -44,11 +44,8 @@ Future<void> _ensureUserDoc(User user, {String? provider}) async {
       });
     }
 
-    // Ensure username index exists (only if not owned by someone else)
     final unameSnap = await tx.get(usernameRef);
     if (unameSnap.exists && unameSnap.data()?['uid'] != user.uid) {
-      // Someone else owns that username (rare with displayName/email fallback)
-      // You can choose to append uid suffix here if you want.
       throw Exception('USERNAME_TAKEN');
     }
 

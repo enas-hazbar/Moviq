@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import '../config/tmdb_config.dart';
 class SharedSpecialListPage extends StatelessWidget {
   final String ownerId;
-  final String listType; // watchlist | watched
+  final String listType; 
   final String listName;
 
   const SharedSpecialListPage({

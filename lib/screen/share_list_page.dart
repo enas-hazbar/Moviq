@@ -3,9 +3,9 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import '../services/chats_service.dart'; 
 class ShareListPage extends StatelessWidget {
-  final String listType; // watchlist | watched | custom
+  final String listType; 
   final String listName;
-  final String? listId;  // only for custom lists
+  final String? listId;  
 
   const ShareListPage({
     super.key,
@@ -46,7 +46,7 @@ class ShareListPage extends StatelessWidget {
                   await ChatsService().sendList(
                     otherUid: friend.id,
                     listType: listType,
-                    listId: listId, // null for watchlist/watched
+                    listId: listId, 
                     listName: listName,
                   );
 

@@ -531,7 +531,7 @@ Widget _messageWrapper({
       );
     }
 
-    // TEXT ✅
+    // TEXT 
 if (type == 'text') {
   return _messageWrapper(
     bubbleContext: bubbleContext,
@@ -555,7 +555,7 @@ if (type == 'text') {
   );
 }
 
-    // IMAGE ✅
+    // IMAGE 
     if (type == 'image') {
       return _messageWrapper(
         bubbleContext: bubbleContext,
@@ -579,7 +579,7 @@ if (type == 'text') {
       );
     }
 
-    // VOICE ✅
+    // VOICE 
     if (type == 'voice') {
       return _messageWrapper(
         bubbleContext: bubbleContext,
@@ -605,7 +605,7 @@ if (type == 'text') {
       );
     }
 
-    // LIST ✅ FINAL FIX
+    // LIST 
 if (type == 'list') {
   final String? listType = m['listType'] as String?;
   final String? ownerId = m['listOwnerId'] as String?;
