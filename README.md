@@ -101,7 +101,7 @@ flutter doctor
 ### 2. Clone the Repository
 
 ```bash
-git clone https://github.com/your-repo/moviq.git
+gh repo clone enas-hazbar/Moviq
 cd moviq
 ```
 
