@@ -411,6 +411,7 @@ The goal of Moviq is to:
 | Login | Dashboard | Movie Details |
 |------|-----------|---------------|
 | <img src="https://github.com/user-attachments/assets/a0d1993c-1e2b-4a98-9b29-a316333dba94" width="250" /> | <img src="https://github.com/user-attachments/assets/aa2d908e-7cbb-482e-9054-9c0a760a005f" width="250" /> | <img src="https://github.com/user-attachments/assets/6b04aaa1-b477-40eb-a80c-0c1a2482cefb" width="250" />
+
 | Reviews | Lists | Search |
 |---------|-------|--------|
 | <img src="https://github.com/user-attachments/assets/6b04aaa1-b477-40eb-a80c-0c1a2482cefb" width="250" /> | <img src="https://github.com/user-attachments/assets/0334b048-e9bf-4d3c-ae3e-e76261c6637c" width="250" /> | <img src="https://github.com/user-attachments/assets/d5d4f7eb-51b5-4bd1-8dcf-8ae3207b25d3" width="250" /> |
