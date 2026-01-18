@@ -386,9 +386,9 @@ Moviq is a group project created by HBO-ICT students as the final project of the
 
 **Team members:**
 - Enas Hazbar
-- [Teammate name]  
-- [Teammate name]  
-- [Teammate name]
+- Daniela Hodaka
+- Abdirahman Hassan
+- Süeda İlhan
 
 
 ---
