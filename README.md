@@ -406,7 +406,19 @@ The goal of Moviq is to:
 
 ## 📸 Screenshots
 
-*Add screenshots here (dashboard, movie details, chat, profile, etc.)*
+<img width="598" height="969" alt="Screenshot 2026-01-18 at 11 23 11" src="https://github.com/user-attachments/assets/a0d1993c-1e2b-4a98-9b29-a316333dba94" />
+<img width="685" height="982" alt="Screenshot 2026-01-18 at 11 23 36" src="https://github.com/user-attachments/assets/aa2d908e-7cbb-482e-9054-9c0a760a005f" />
+<img width="652" height="978" alt="Screenshot 2026-01-18 at 11 23 45" src="https://github.com/user-attachments/assets/d5d4f7eb-51b5-4bd1-8dcf-8ae3207b25d3" />
+<img width="715" height="976" alt="Screenshot 2026-01-18 at 11 27 39" src="https://github.com/user-attachments/assets/6b04aaa1-b477-40eb-a80c-0c1a2482cefb" />
+<img width="617" height="972" alt="Screenshot 2026-01-18 at 11 23 58" src="https://github.com/user-attachments/assets/0334b048-e9bf-4d3c-ae3e-e76261c6637c" />
+<img width="664" height="983" alt="Screenshot 2026-01-18 at 11 24 05" src="https://github.com/user-attachments/assets/63e7b47a-50f7-4fe6-bc30-76c303c95bd5" />
+<img width="619" height="967" alt="Screenshot 2026-01-18 at 11 24 19" src="https://github.com/user-attachments/assets/2d2e6087-e54f-49a9-a249-2c36e37677e9" />
+<img width="653" height="977" alt="Screenshot 2026-01-18 at 11 24 41" src="https://github.com/user-attachments/assets/7268d324-29f2-48ca-98e3-23d0fe6a6eb6" />
+<img width="535" height="962" alt="Screenshot 2026-01-18 at 11 24 51" src="https://github.com/user-attachments/assets/bcfc4e3e-e6db-4301-9f58-ddfe0d95a622" />
+<img width="646" height="994" alt="Screenshot 2026-01-18 at 11 25 02" src="https://github.com/user-attachments/assets/c0839b51-e2be-49e6-96d5-5b9978822ef3" />
+<img width="598" height="968" alt="Screenshot 2026-01-18 at 11 25 09" src="https://github.com/user-attachments/assets/5054569b-247f-4050-91ab-ba8425f680f9" />
+<img width="571" height="974" alt="Screenshot 2026-01-18 at 11 25 20" src="https://github.com/user-attachments/assets/f7e7a90f-38f7-443a-ba6d-1ab8f63bede7" />
+
 
 ---
 
