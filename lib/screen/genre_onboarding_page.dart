@@ -49,37 +49,52 @@ class _GenreOnboardingPageState extends State<GenreOnboardingPage> {
   }
 
   @override
-  Widget build(BuildContext context) {
-    return Scaffold(
+Widget build(BuildContext context) {
+  final bottom = MediaQuery.of(context).padding.bottom; // system bar / gesture area
+
+  return Scaffold(
+    backgroundColor: Colors.black,
+    appBar: AppBar(
       backgroundColor: Colors.black,
-      appBar: AppBar(
-        backgroundColor: Colors.black,
-        title: const Text('Choose genres'),
-        automaticallyImplyLeading: false,
+      title: const Text('Choose genres'),
+      automaticallyImplyLeading: false,
+    ),
+
+    body: Padding(
+      padding: const EdgeInsets.all(12),
+      child: Align(
+        alignment: Alignment.topCenter,
+        child: Wrap(
+          spacing: 8,
+          runSpacing: 8,
+          children: genres.entries.map((e) {
+            return ChoiceChip(
+              label: Text(e.value),
+              selected: selected.contains(e.key),
+              onSelected: (v) {
+                setState(() {
+                  v ? selected.add(e.key) : selected.remove(e.key);
+                });
+              },
+            );
+          }).toList(),
+        ),
       ),
-      body: Column(
-        children: [
-          Wrap(
-            spacing: 8,
-            children: genres.entries.map((e) {
-              return ChoiceChip(
-                label: Text(e.value),
-                selected: selected.contains(e.key),
-                onSelected: (v) {
-                  setState(() {
-                    v ? selected.add(e.key) : selected.remove(e.key);
-                  });
-                },
-              );
-            }).toList(),
-          ),
-          const Spacer(),
-          ElevatedButton(
+    ),
+
+    bottomNavigationBar: SafeArea(
+      top: false,
+      child: Padding(
+        padding: EdgeInsets.fromLTRB(12, 8, 12, 12 + bottom + 8), // extra space for Samsung gestures
+        child: SizedBox(
+          height: 48,
+          child: ElevatedButton(
             onPressed: selected.isEmpty ? null : _save,
             child: const Text('Continue'),
           ),
-        ],
+        ),
       ),
-    );
-  }
+    ),
+  );
+}
 }

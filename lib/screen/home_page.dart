@@ -1,10 +1,8 @@
 import 'package:flutter/material.dart';
-
 import '../services/tmdb_service.dart';
 import '../services/recommendation_service.dart';
 import '../models/movie.dart';
 import '../config/tmdb_config.dart';
-
 import 'movie_details_page.dart';
 import 'chat_page.dart';
 import 'favorites_page.dart';
@@ -14,10 +12,8 @@ import 'reviews_page.dart';
 import 'watchlist_page.dart';
 import 'friends_page.dart';
 import 'chats_page.dart';
-
 import '../widgets/moviq_scaffold.dart';
 import '../widgets/nav_helpers.dart';
-
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
 
@@ -249,21 +245,34 @@ class _Section extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Expanded(
-                        child: ClipRRect(
-                          borderRadius: BorderRadius.circular(8),
-                          child: Image.network(
-                            TmdbConfig.imageBaseUrl + movie.posterPath,
-                            fit: BoxFit.cover,
-                            errorBuilder: (_, __, ___) => Container(
-                              color: Colors.white12,
-                              alignment: Alignment.center,
-                              child: const Icon(
-                                Icons.movie_outlined,
-                                color: Colors.white38,
-                                size: 40,
+                                    child: Stack(
+                          children: [
+                            ClipRRect(
+                              borderRadius: BorderRadius.circular(8),
+                              child: Image.network(
+                                TmdbConfig.imageBaseUrl + movie.posterPath,
+                                fit: BoxFit.cover,
+                                errorBuilder: (_, __, ___) => Container(
+                                  color: Colors.white12,
+                                  alignment: Alignment.center,
+                                  child: const Icon(
+                                    Icons.movie_outlined,
+                                    color: Colors.white38,
+                                    size: 50,
+                                  ),
+                                ),
                               ),
                             ),
-                          ),
+                            Positioned(
+                              top: 6,
+                              right: 6,
+                              child: FavoriteHeart(
+                                movieId: movie.id,
+                                posterPath: movie.posterPath,
+                                width: 20, // adjust size of heart
+                              ),
+                            ),
+                          ],
                         ),
                       ),
                       const SizedBox(height: 6),
